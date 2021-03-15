@@ -8,7 +8,7 @@
 
 # --- File Name: vc_modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Mon 15 Mar 2021 22:07:40 AEDT
+# --- Last Modified: Thu 11 Mar 2021 23:07:41 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -28,7 +28,6 @@ from training.networks_stylegan2 import apply_bias_act, naive_upsample_2d
 from training.networks_stylegan2 import naive_downsample_2d, modulated_conv2d_layer
 from training.networks_stylegan2 import minibatch_stddev_layer
 from training.networks_stylegan import instance_norm, style_mod
-# from stn.stn import spatial_transformer_network as transformer
 
 LATENT_MODULES = [
     'D_global', 'C_nocond_global', 'C_global', 'SB', 'C_local_heat', 'C_local_hfeat',
@@ -302,53 +301,6 @@ def build_C_spgroup_softmax_layers(x, name, n_latents, start_idx, scope_idx, dla
         else:
             return x
 
-def build_C_spgroup_stn_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
-                          act, fused_modconv, fmaps=128, return_atts=False, resolution=128, **kwargs):
-    '''
-    Build continuous latent layers with learned group spatial attention with spatial transform.
-    Support square images only.
-    '''
-    with tf.variable_scope(name + '-' + str(scope_idx)):
-        with tf.variable_scope('Att_spatial'):
-            x_mean = tf.reduce_mean(x, axis=[2, 3]) # [b, in_dim]
-            x_wh = x.shape[2]
-            atts_wh = dense_layer(x_mean, fmaps=n_latents * 4 * x_wh)
-            atts_wh = tf.reshape(atts_wh, [-1, n_latents, 4, x_wh]) # [b, n_latents, 4, x_wh]
-            att_wh_sm = tf.nn.softmax(atts_wh, axis=-1)
-            att_wh_cs = tf.cumsum(att_wh_sm, axis=-1)
-            att_h_cs_starts, att_h_cs_ends, att_w_cs_starts, att_w_cs_ends = tf.split(att_wh_cs, 4, axis=2)
-            att_h_cs_ends = 1 - att_h_cs_ends # [b, n_latents, 1, x_wh]
-            att_w_cs_ends = 1 - att_w_cs_ends # [b, n_latents, 1, x_wh]
-            att_h_cs_starts = tf.reshape(att_h_cs_starts, [-1, n_latents, 1, x_wh, 1])
-            att_h_cs_ends = tf.reshape(att_h_cs_ends, [-1, n_latents, 1, x_wh, 1])
-            att_h = att_h_cs_starts * att_h_cs_ends # [b, n_latents, 1, x_wh, 1]
-            att_w_cs_starts = tf.reshape(att_w_cs_starts, [-1, n_latents, 1, 1, x_wh])
-            att_w_cs_ends = tf.reshape(att_w_cs_ends, [-1, n_latents, 1, 1, x_wh])
-            att_w = att_w_cs_starts * att_w_cs_ends # [b, n_latents, 1, 1, x_wh]
-            atts = att_h * att_w # [b, n_latents, 1, x_wh, x_wh]
-
-        with tf.variable_scope('trans_matrix'):
-            theta = apply_bias_act(dense_layer(x_mean, fmaps=n_latents * 6))
-            theta = tf.reshape(theta, [-1, 6]) # [b*n_latents, 6]
-            atts = tf.reshape(atts, [-1, x_wh, x_wh, 1]) # [b*n_latents, x_wh, x_wh, 1]
-            atts = transformer(atts, theta) # [b*n_latents, x_wh, x_wh, 1]
-            atts = tf.reshape(atts, [-1, n_latents, 1, x_wh, x_wh])
-
-        with tf.variable_scope('Att_apply'):
-            C_global_latents = dlatents_in[:, start_idx:start_idx + n_latents]
-            x_norm = instance_norm(x)
-            for i in range(n_latents):
-                with tf.variable_scope('style_mod-' + str(i)):
-                    x_styled = style_mod(x_norm, C_global_latents[:, i:i+1])
-                    x = x * (1 - atts[:, i]) + x_styled * atts[:, i]
-        if return_atts:
-            with tf.variable_scope('Reshape_output'):
-                atts = tf.reshape(atts, [-1, x_wh, x_wh, 1])
-                atts = tf.image.resize(atts, size=(resolution, resolution))
-                atts = tf.reshape(atts, [-1, n_latents, 1, resolution, resolution])
-            return x, atts
-        else:
-            return x
 
 def build_C_spfgroup_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                           act, fused_modconv, fmaps=128, return_atts=False, resolution=128, **kwargs):
@@ -476,55 +428,6 @@ def build_Cout_genatts_spgroup_layers(x, name, n_latents, scope_idx,
             atts = tf.image.resize(atts, size=(resolution, resolution))
             atts = tf.reshape(atts, [-1, n_latents, 1, resolution, resolution])
         return x, pred_out, atts
-
-
-def build_SB_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in, n_content,
-                    act, resample_kernel, fused_modconv, fmaps=128, **kwargs):
-    '''
-    Build spatial-biased networks modules.
-    e.g. ['SB-rotation-0', 'SB_scaling-1', 'SB_magnification-1',
-            'SB-shearing-2', 'SB-translation-2']
-    '''
-    sb_type = name.split('-')[-1]
-    assert sb_type in [
-        'rotation', 'scaling', 'magnification', 'shearing', 'translation'
-    ]
-    with tf.variable_scope(name + '-' + str(scope_idx)):
-        if sb_type == 'magnification':
-            assert n_latents == 1
-            # [-2., 2.] --> [0.5, 1.]
-            magnifier = (dlatents_in[:, start_idx:start_idx + n_latents]
-                         + 6.) / 8.
-            magnifier = tf.reshape(magnifier,
-                                   [tf.shape(magnifier)[0], 1, 1, 1])
-            x *= magnifier
-        else:
-            if sb_type == 'rotation':
-                assert n_latents == 1
-                theta = get_r_matrix(dlatents_in[:, start_idx:start_idx +
-                                                       n_latents],
-                                     dlatents_in[:, :n_content],
-                                     act=act)
-            elif sb_type == 'scaling':
-                assert n_latents <= 2
-                theta = get_s_matrix(dlatents_in[:, start_idx:start_idx +
-                                                       n_latents],
-                                     dlatents_in[:, :n_content],
-                                     act=act)
-            elif sb_type == 'shearing':
-                assert n_latents <= 2
-                theta = get_sh_matrix(
-                    dlatents_in[:, start_idx:start_idx + n_latents],
-                    dlatents_in[:, :n_content],
-                    act=act)
-            elif sb_type == 'translation':
-                assert n_latents <= 2
-                theta = get_t_matrix(dlatents_in[:, start_idx:start_idx +
-                                                       n_latents],
-                                     dlatents_in[:, :n_content],
-                                     act=act)
-            x = apply_st(x, theta)
-    return x
 
 
 def build_local_heat_layers(x, name, n_latents, start_idx, scope_idx,
@@ -789,14 +692,6 @@ def get_t_matrix(t_latents, cond_latent, act='lrelu'):
         tt_12 = xy_shift[:, 1:]
     theta = tf.concat([tt_00, tt_01, tt_02, tt_10, tt_11, tt_12], axis=1)
     return theta
-
-
-def apply_st(x, st_matrix):
-    with tf.variable_scope('Transform'):
-        x = tf.transpose(x, [0, 2, 3, 1])  # NCHW -> NHWC
-        x = transformer(x, st_matrix, out_dims=x.shape.as_list()[1:3])
-        x = tf.transpose(x, [0, 3, 1, 2])  # NHWC -> NCHW
-    return x
 
 
 def get_att_heat(x, nheat, act):
