@@ -8,7 +8,7 @@
 
 # --- File Name: vc_modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Mon 28 Dec 2020 18:27:03 AEDT
+# --- Last Modified: Mon 15 Mar 2021 22:07:40 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -28,7 +28,7 @@ from training.networks_stylegan2 import apply_bias_act, naive_upsample_2d
 from training.networks_stylegan2 import naive_downsample_2d, modulated_conv2d_layer
 from training.networks_stylegan2 import minibatch_stddev_layer
 from training.networks_stylegan import instance_norm, style_mod
-from stn.stn import spatial_transformer_network as transformer
+# from stn.stn import spatial_transformer_network as transformer
 
 LATENT_MODULES = [
     'D_global', 'C_nocond_global', 'C_global', 'SB', 'C_local_heat', 'C_local_hfeat',
