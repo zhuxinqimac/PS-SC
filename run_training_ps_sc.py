@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 16:39:20 AEDT
+# --- Last Modified: Tue 16 Mar 2021 17:53:00 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -70,7 +70,6 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
                      fmap_min=fmap_min, fmap_max=fmap_max)
         D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
             fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
-        I_info = EasyDict()
         desc = 'info_gan'
     elif model_type == 'ps_sc_gan': # COMA-FAIN
         G = EasyDict(
@@ -86,7 +85,6 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
                      fmap_min=fmap_min, fmap_max=fmap_max)
         D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
             fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
-        I_info = EasyDict()
         desc = 'ps_sc_gan'
     elif model_type == 'gan': # Just modular GAN.
         G = EasyDict(
@@ -100,7 +98,6 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         I = EasyDict()
         D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
             fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
-        I_info = EasyDict()
         desc = 'gan'
     else:
         raise ValueError('Not supported model tyle: ' + model_type)
@@ -161,7 +158,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
     sc.submit_target = dnnlib.SubmitTarget.LOCAL
     sc.local.do_not_copy_source_files = True
     kwargs = EasyDict(train)
-    kwargs.update(G_args=G, D_args=D, I_args=I, I_info_args=I_info, G_opt_args=G_opt, D_opt_args=D_opt,
+    kwargs.update(G_args=G, D_args=D, I_args=I, G_opt_args=G_opt, D_opt_args=D_opt,
                   G_loss_args=G_loss, D_loss_args=D_loss,
                   use_info_gan=(model_type == 'info_gan'), # Independent branch version
                   use_ps_head=(model_type=='ps_sc_gan'),
