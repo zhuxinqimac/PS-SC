@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 17:53:00 AEDT
+# --- Last Modified: Tue 16 Mar 2021 17:56:19 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -36,7 +36,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         fmap_decay=0.15, C_lambda=1,
         n_samples_per=10, module_list=None, model_type='ps_sc_gan',
         epsilon_loss=3, random_eps=False, latent_type='uniform',
-        delta_type='onedim', batch_size=32, batch_per_gpu=16,
+        batch_size=32, batch_per_gpu=16,
         return_atts=False, random_seed=1000,
         module_I_list=None, module_D_list=None,
         fmap_min=16, fmap_max=512, G_nf_scale=4,
@@ -116,8 +116,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns_ps_sc',
             C_lambda=C_lambda,
             epsilon=epsilon_loss, random_eps=random_eps, latent_type=latent_type,
-            use_cascade=use_cascade,
-            delta_type=delta_type)  # Options for generator loss.
+            use_cascade=use_cascade)  # Options for generator loss.
         D_loss = EasyDict(func_name='training.loss_ps_sc.D_logistic_r1_shared',
             latent_type=latent_type)  # Options for discriminator loss.
     elif model_type == 'gan': # Just GANs
@@ -260,8 +259,6 @@ def main():
     parser.add_argument('--random_eps',
         help='If use random epsilon in ps loss.',
         default=True, metavar='RANDOM_EPS', type=_str_to_bool)
-    parser.add_argument('--delta_type', help='What type of delta use.',
-                        metavar='DELTA_TYPE', default='onedim', choices=['onedim', 'fulldim'], type=str)
     parser.add_argument('--fmap_decay', help='fmap decay for network building.',
                         metavar='FMAP_DECAY', default=0.15, type=float)
     parser.add_argument('--I_fmap_base', help='Fmap base for I.',
