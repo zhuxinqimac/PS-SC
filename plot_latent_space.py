@@ -6,13 +6,13 @@
 # You may obtain a copy of the License at
 # http://www.apache.org/licenses/LICENSE-2.0
 
-# --- File Name: generator_vaes.py
+# --- File Name: plot_latent_space.py
 # --- Creation Date: 05-10-2020
-# --- Last Modified: Wed 18 Nov 2020 16:55:58 AEDT
+# --- Last Modified: Tue 16 Mar 2021 17:28:22 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
-Generate script of vae networks.
+Plot latent space (rotation).
 """
 
 import argparse
@@ -252,7 +252,7 @@ def _str_to_list_of_int(v):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="VAE generators.")
+    parser = argparse.ArgumentParser(description="Plot latent space.")
 
     subparsers = parser.add_subparsers(help='Sub-commands', dest='command')
 
@@ -360,8 +360,8 @@ def main():
     sc.run_desc = subcmd
 
     func_name_map = {
-        'generate-grids': 'generator_vaes.generate_grids',
-        'plot-rot-fn': 'generator_vaes.plot_rot_fn'
+        'generate-grids': 'plot_latent_space.generate_grids',
+        'plot-rot-fn': 'plot_latent_space.plot_rot_fn'
     }
     dnnlib.submit_run(sc, func_name_map[subcmd], **kwargs)
 

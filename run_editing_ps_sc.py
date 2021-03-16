@@ -6,9 +6,9 @@
 # You may obtain a copy of the License at
 # http://www.apache.org/licenses/LICENSE-2.0
 
-# --- File Name: run_editing_vc2.py
+# --- File Name: run_editing_ps_sc.py
 # --- Creation Date: 30-05-2020
-# --- Last Modified: Sat 30 May 2020 04:30:09 AEST
+# --- Last Modified: Tue 16 Mar 2021 16:57:15 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -28,7 +28,6 @@ import pretrained_networks
 from training import misc
 import collections
 from PIL import Image
-# d = collections.OrderedDict()
 
 #----------------------------------------------------------------------------
 def image_to_ready(filename):
@@ -155,10 +154,7 @@ def _str_to_attr2idx(v):
 #----------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description='''StyleGAN2 generator.''')
-
-# def images_editing(network_pkl, exist_imgs_dir, attr_source_dict, face_source_ls,
-                  # attr2idx_dict, create_new_G, new_func_name):
+    parser = argparse.ArgumentParser(description='''PS_SC Editing.''')
 
     subparsers = parser.add_subparsers(help='Sub-commands', dest='command')
 
@@ -173,7 +169,7 @@ def main():
     parser_images_editing.add_argument('--attr2idx_dict', help='Attr names to attr idx in latent codes',
                                        default='{azimuth: 10, haircolor: 17, smile: 6}', type=_str_to_attr2idx)
     parser_images_editing.add_argument('--create_new_G', help='If create a new G for projection.', default=False, type=_str_to_bool)
-    parser_images_editing.add_argument('--new_func_name', help='new G func name if create new G', default='training.vc_networks2.G_main_vc2')
+    parser_images_editing.add_argument('--new_func_name', help='new G func name if create new G', default='training.ps_sc_networks2.G_main_ps_sc')
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -191,7 +187,7 @@ def main():
     sc.run_desc = subcmd
 
     func_name_map = {
-        'images-editing': 'run_editing_vc2.images_editing',
+        'images-editing': 'run_editing_ps_sc.images_editing',
     }
     dnnlib.submit_run(sc, func_name_map[subcmd], **kwargs)
 

@@ -6,13 +6,13 @@
 # You may obtain a copy of the License at
 # http://www.apache.org/licenses/LICENSE-2.0
 
-# --- File Name: run_generator_vc2.py
+# --- File Name: run_generator_ps_sc.py
 # --- Creation Date: 26-05-2020
-# --- Last Modified: Fri 20 Nov 2020 19:18:45 AEDT
+# --- Last Modified: Tue 16 Mar 2021 17:19:08 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
-Generator run for VC2.
+Generator run for PS-SC.
 """
 
 import argparse
@@ -29,8 +29,8 @@ import cv2
 import pretrained_networks
 from training import misc
 from training.utils import get_grid_latents, get_return_v, add_outline, save_atts
-from run_editing_vc2 import image_to_ready
-from run_editing_vc2 import image_to_out
+from run_editing_ps_sc import image_to_ready
+from run_editing_ps_sc import image_to_out
 from PIL import Image, ImageDraw, ImageFont
 from metrics.metric_defaults import metric_defaults
 
@@ -335,7 +335,7 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
     parser_generate_images.add_argument('--seeds', type=_parse_num_range, help='List of random seeds', required=True)
     parser_generate_images.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
     parser_generate_images.add_argument('--create_new_G', help='If create a new G for projection.', default=False, type=_str_to_bool)
-    parser_generate_images.add_argument('--new_func_name', help='new G func name if create new G', default='training.vc_networks2.G_main_vc2')
+    parser_generate_images.add_argument('--new_func_name', help='new G func name if create new G', default='training.ps_sc_networks2.G_main_ps_sc')
 
     parser_style_mixing_example = subparsers.add_parser('style-mixing-example', help='Generate style mixing video')
     parser_style_mixing_example.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
@@ -370,7 +370,7 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
     parser_generate_gifs.add_argument('--attr2idx_dict', help='Attr names to attr idx in latent codes',
                                        default='{azimuth: 10, haircolor: 17, smile: 6}', type=_str_to_attr2idx)
     parser_generate_gifs.add_argument('--create_new_G', help='If create a new G for projection.', default=False, type=_str_to_bool)
-    parser_generate_gifs.add_argument('--new_func_name', help='new G func name if create new G', default='training.vc_networks2.G_main_vc2')
+    parser_generate_gifs.add_argument('--new_func_name', help='new G func name if create new G', default='training.ps_sc_networks2.G_main_ps_sc')
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -388,11 +388,11 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
     sc.run_desc = subcmd
 
     func_name_map = {
-        'generate-images': 'run_generator_vc2.generate_images',
-        'style-mixing-example': 'run_generator_vc2.style_mixing_example',
-        'generate-traversals': 'run_generator_vc2.generate_traversals',
-        'generate-domain-shift': 'run_generator_vc2.generate_domain_shift',
-        'generate-gifs': 'run_generator_vc2.generate_gifs'
+        'generate-images': 'run_generator_ps_sc.generate_images',
+        'style-mixing-example': 'run_generator_ps_sc.style_mixing_example',
+        'generate-traversals': 'run_generator_ps_sc.generate_traversals',
+        'generate-domain-shift': 'run_generator_ps_sc.generate_domain_shift',
+        'generate-gifs': 'run_generator_ps_sc.generate_gifs'
     }
     dnnlib.submit_run(sc, func_name_map[subcmd], **kwargs)
 

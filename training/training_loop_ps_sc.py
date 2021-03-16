@@ -6,9 +6,9 @@
 # You may obtain a copy of the License at
 # http://www.apache.org/licenses/LICENSE-2.0
 
-# --- File Name: training_loop_vc2.py
+# --- File Name: training_loop_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Mon 15 Mar 2021 18:10:30 AEDT
+# --- Last Modified: Tue 16 Mar 2021 16:49:29 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -34,11 +34,10 @@ from training.utils import save_atts, add_outline, get_grid_latents
 # Main training script.
 
 
-def training_loop_vc2(
+def training_loop_ps_sc(
         G_args={},  # Options for generator network.
         D_args={},  # Options for discriminator network.
-        I_args={},  # Options for infogan-head/vcgan-head network.
-        I_info_args={},  # Options for infogan-head/vcgan-head network.
+        I_args={},  # Options for infogan-head/ps-sc-head network.
         G_opt_args={},  # Options for generator optimizer.
         D_opt_args={},  # Options for discriminator optimizer.
         G_loss_args={},  # Options for generator loss.
@@ -49,7 +48,7 @@ def training_loop_vc2(
         metric_arg_list=[],  # Options for MetricGroup.
         tf_config={},  # Options for tflib.init_tf().
         use_info_gan=False,  # Whether to use info-gan.
-        use_vc_head=False,  # Whether to use vc-head.
+        use_ps_head=False,  # Whether to use ps-head.
         data_dir=None,  # Directory to load datasets from.
         G_smoothing_kimg=10.0,  # Half-life of the running average of generator weights.
         minibatch_repeats=4,  # Number of minibatches to run before adjusting training parameters.
@@ -71,12 +70,11 @@ def training_loop_vc2(
         resume_time=0.0,  # Assumed wallclock time at the beginning. Affects reporting.
         resume_with_new_nets=False,  # Construct new networks according to G_args and D_args before resuming training?
         traversal_grid=False,  # Used for disentangled representation learning.
-        n_discrete=3,  # Number of discrete latents in model.
+        n_discrete=0,  # Number of discrete latents in model.
         n_continuous=4,  # Number of continuous latents in model.
         return_atts=False,  # If return attention maps.
         return_I_atts=False,  # If return I_attention maps of vpex.
         avg_mv_for_I=False,  # If use average moving for I.
-        opt_reset_ls=None,  # Reset lr list for gradual latents.
         topk_dims_to_show=20, # Number of top disentant dimensions to show in a snapshot.
         cascade_alt_freq_k=1, # Frequency in k for cascade_dim altering.
         n_samples_per=10):  # Number of samples for each line in traversal.
@@ -86,7 +84,7 @@ def training_loop_vc2(
     num_gpus = dnnlib.submit_config.num_gpus
 
     # If include I
-    include_I = use_info_gan or use_vc_head
+    include_I = use_info_gan or use_ps_head
 
     # Load training set.
     training_set = dataset.load_dataset(data_dir=dnnlib.convert_path(data_dir),
@@ -201,10 +199,7 @@ def training_loop_vc2(
                          grid_size=grid_size)
 
     if include_I and return_I_atts:
-        if avg_mv_for_I:
-            I_tmp = Is
-        else:
-            I_tmp = I
+        I_tmp = Is if avg_mv_for_I else I
         _, atts = I_tmp.run(grid_fakes,
                             grid_fakes,
                             grid_latents,
@@ -404,10 +399,6 @@ def training_loop_vc2(
                     sched.lod) != np.ceil(prev_lod):
                 G_opt.reset_optimizer_state()
                 D_opt.reset_optimizer_state()
-        # if opt_reset_ls is not None:
-            # if cur_nimg in opt_reset_ls:
-                # G_opt.reset_optimizer_state()
-                # D_opt.reset_optimizer_state()
         prev_lod = sched.lod
 
         # Calculate which cascade_dim is to use.
