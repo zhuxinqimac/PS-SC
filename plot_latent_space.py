@@ -8,7 +8,7 @@
 
 # --- File Name: plot_latent_space.py
 # --- Creation Date: 05-10-2020
-# --- Last Modified: Tue 16 Mar 2021 17:28:22 AEDT
+# --- Last Modified: Tue 16 Mar 2021 22:24:58 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -92,11 +92,6 @@ def generate_grids(network,
     G_kwargs.randomize_noise = True
     G_kwargs.minibatch_size=8
 
-    distance_measure = misc.load_pkl(
-        'http://d36zk2xti64re0.cloudfront.net/stylegan1/networks/metrics/vgg16_zhang_perceptual.pkl'
-    )
-
-    distance_ls = []
     for seed_idx, seed in enumerate(seeds):
         print('Generating images for seed %d (%d/%d) ...' %
               (seed, seed_idx, len(seeds)))
@@ -105,9 +100,6 @@ def generate_grids(network,
         images = get_return_v(
             G.run(z, None, **G_kwargs),
             1)  # [n_samples_per*n_samples_per, channel, height, width]
-
-        distance_ls.append(
-            measure_distance(images, n_samples_per, distance_measure))
 
         images = add_outline(images, width=1)
         n_samples_square, c, h, w = np.shape(images)
@@ -119,7 +111,6 @@ def generate_grids(network,
         images = np.rint(images).clip(0, 255).astype(np.uint8)
         PIL.Image.fromarray(images, 'RGB').save(
             dnnlib.make_run_dir_path('seed%04d.png' % seed))
-    print('mean_distance:', np.mean(np.array(distance_ls)))
 
 
 def plot_fn(rot_ls_ori,
@@ -196,21 +187,6 @@ def plot_rot_fn(network,
 
             distance_ls.append(
                 measure_distance(images, n_samples_per, distance_measure))
-            # save grids
-            if seed_idx < 10 and rot == 0:
-                images_2 = add_outline(images, width=1)
-                n_samples_square, c, h, w = np.shape(images_2)
-                assert n_samples_square == n_samples_per * n_samples_per
-                images_2 = np.reshape(images_2,
-                                      (n_samples_per, n_samples_per, c, h, w))
-                images_2 = np.transpose(images_2, [0, 3, 1, 4, 2])
-                images_2 = np.reshape(
-                    images_2, (n_samples_per * h, n_samples_per * w, c))
-                images_2 = misc.adjust_dynamic_range(images_2, [0, 1],
-                                                     [0, 255])
-                images_2 = np.rint(images_2).clip(0, 255).astype(np.uint8)
-                PIL.Image.fromarray(images_2, 'RGB').save(
-                    dnnlib.make_run_dir_path('seed%04d.png' % seed))
 
         distance_rot_ls.append(np.mean(np.array(distance_ls)))
     plot_fn(rot_ls,

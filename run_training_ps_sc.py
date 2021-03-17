@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 17:56:19 AEDT
+# --- Last Modified: Wed 17 Mar 2021 16:50:20 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -137,7 +137,6 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
     sched.G_lrate_base = sched.D_lrate_base = learning_rate
     sched.minibatch_size_base = batch_size
     sched.minibatch_gpu_base = batch_per_gpu
-    D_loss.gamma = 10
     metrics = [metric_defaults[x] for x in metrics]
 
     desc += '-' + dataset
@@ -230,9 +229,7 @@ def main():
     parser.add_argument('--total-kimg',
         help='Training length in thousands of images (default: %(default)s)',
         metavar='KIMG', default=25000, type=int)
-    parser.add_argument('--gamma',
-        help='R1 regularization weight (default is config dependent)',
-        default=None, type=float)
+    parser.add_argument('--gamma', help='R1 regularization weight', default=100, type=float)
     parser.add_argument('--mirror-augment', help='Mirror augment (default: %(default)s)',
                         default=False, metavar='BOOL', type=_str_to_bool)
     parser.add_argument(
@@ -250,9 +247,9 @@ def main():
                         metavar='N_BATCH', default=32, type=int)
     parser.add_argument('--batch_per_gpu', help='N batch per gpu.',
                         metavar='N_BATCH_PER_GPU', default=16, type=int)
-    parser.add_argument('--C_lambda', help='Continuous lambda for INFO-GAN and VC-GAN.',
+    parser.add_argument('--C_lambda', help='Continuous lambda for INFO-GAN and PS-SC-GAN.',
                         metavar='C_LAMBDA', default=1, type=float)
-    parser.add_argument('--epsilon_loss', help='Continuous lambda for INFO-GAN and VC-GAN.',
+    parser.add_argument('--epsilon_loss', help='Continuous lambda for INFO-GAN and PS-SC-GAN.',
                         metavar='EPSILON_LOSS', default=0.4, type=float)
     parser.add_argument('--latent_type', help='What type of latent priori to use.',
                         metavar='LATENT_TYPE', default='uniform', choices=['uniform', 'normal', 'trunc_normal'], type=str)

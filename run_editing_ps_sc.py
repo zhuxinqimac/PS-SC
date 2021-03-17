@@ -8,11 +8,11 @@
 
 # --- File Name: run_editing_ps_sc.py
 # --- Creation Date: 30-05-2020
-# --- Last Modified: Tue 16 Mar 2021 16:57:15 AEDT
+# --- Last Modified: Tue 16 Mar 2021 22:35:41 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
-Image editing script for VC2 model.
+Image editing script for PS-SC model.
 """
 
 import argparse
@@ -58,10 +58,8 @@ def images_editing(network_pkl, exist_imgs_dir, attr_source_dict, face_source_ls
     _G, _D, I, Gs = misc.load_pkl(network_pkl)
     if create_new_G:
         Gs = Gs.convert(new_func_name=new_func_name)
-    # noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
 
     Gs_kwargs = dnnlib.EasyDict()
-    # Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
     Gs_kwargs.randomize_noise = True
 
     attr_source_saved = False
@@ -73,9 +71,6 @@ def images_editing(network_pkl, exist_imgs_dir, attr_source_dict, face_source_ls
         face_file = os.path.join(exist_imgs_dir, face_img)
         image = image_to_ready(face_file)
         attr_ori = I.run(image)
-        # print('attr_ori.shape: ', attr_ori.shape)
-        # print('Gs.num_inputs', Gs.num_inputs)
-        # print('z.shape:', z.shape)
         ori_img, _ = Gs.run(attr_ori, None, **Gs_kwargs)
         ori_imgs.append(ori_img)
         for k in attr_source_dict:

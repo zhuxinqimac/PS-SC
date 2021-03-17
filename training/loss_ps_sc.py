@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 00:03:49 AEDT
+# --- Last Modified: Tue 16 Mar 2021 22:11:33 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -49,7 +49,6 @@ def calc_ps_loss(latents, delta_latents, reg1_out, reg2_out, C_delta_latents, C_
 def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, I_info=None, latent_type='uniform',
                         C_lambda=1, epsilon=0.4, random_eps=False, use_cascade=False, cascade_dim=None):
     _ = opt
-    discrete_latents = None
     C_global_size = G.input_shapes[0][1]
 
     if latent_type == 'uniform':
@@ -106,7 +105,6 @@ def calc_regress_loss(latents, pred_outs, C_global_size, C_lambda, minibatch_siz
 def G_logistic_ns_info_gan(G, D, I, opt, training_set, minibatch_size,
                            latent_type='uniform', C_lambda=1, norm_ord=2):
     _ = opt
-    discrete_latents = None
     C_global_size = G.input_shapes[0][1]
 
     if latent_type == 'uniform':

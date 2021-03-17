@@ -8,11 +8,11 @@
 
 # --- File Name: training_loop_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 16:49:29 AEDT
+# --- Last Modified: Tue 16 Mar 2021 22:12:07 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
-Training loop file for variation consistency (V2) related networks.
+Training loop file for PS-SC related networks.
 Code borrowed from training_loop.py of NVIDIA.
 """
 
