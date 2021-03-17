@@ -59,7 +59,7 @@ class MetricBase:
         self._progress_sec = psec
 
     def run(self, network_pkl, run_dir=None, data_dir=None, dataset_args=None, mirror_augment=None, num_gpus=1, tf_config=None, log_results=True,
-            include_I=False, avg_mv_for_I=False, Gs_kwargs=dict(is_validation=True, return_atts=False), train_infernet=False, is_vae=False, use_D=False,
+            include_I=False, avg_mv_for_I=False, Gs_kwargs=dict(is_validation=True, return_atts=False), use_D=False,
             **kwargs):
         self._reset(network_pkl=network_pkl, run_dir=run_dir, data_dir=data_dir, dataset_args=dataset_args, mirror_augment=mirror_augment)
         time_begin = time.time()
@@ -70,15 +70,6 @@ class MetricBase:
                     _G, _D, _I, Gs, I = misc.load_pkl(self._network_pkl)
                 else:
                     _G, _D, I, Gs = misc.load_pkl(self._network_pkl)
-                outs = self._evaluate(Gs=Gs, Gs_kwargs=Gs_kwargs, I_net=I, num_gpus=num_gpus, **kwargs)
-            elif train_infernet:
-                I, Gs = misc.load_pkl(self._network_pkl)
-                outs = self._evaluate(Gs=Gs, Gs_kwargs=Gs_kwargs, I_net=I, num_gpus=num_gpus, **kwargs)
-            elif is_vae:
-                if use_D:
-                    I, Gs, D = misc.load_pkl(self._network_pkl)
-                else:
-                    I, Gs = misc.load_pkl(self._network_pkl)
                 outs = self._evaluate(Gs=Gs, Gs_kwargs=Gs_kwargs, I_net=I, num_gpus=num_gpus, **kwargs)
             else:
                 _G, _D, Gs = misc.load_pkl(self._network_pkl)

@@ -89,6 +89,24 @@ to specify where to insert the Spatial Constriction modules in the generator.
 The latent traversals and metrics will be logged in the resulting directory.
 The --C_lambda tag is the hyper-parameter for modulating the PS-loss.
 
+## Evaluation
+To evaluate a trained model, we can use the following code:
+```
+CUDA_VISIBLE_DEVICES=0 \
+    python run_metrics.py \
+    --result-dir /path/to/evaluate_results_dir \
+    --network /path/to/xxx.pkl \
+    --metrics fid50k,tpl_large,ppl2_wend \
+    --data-dir /path/to/datasets \
+    --dataset celeba_tfr \
+    --include_I True \
+    --mapping_nodup True \
+    --num-gpus 1
+```
+where the --include_I is to indicate the model should be loaded with an
+inference network, and --mapping_nodup is to indicate that the loaded model
+has no W space duplication as in stylegan.
+
 ## Generation
 We can generate random images or traversals based on a pretrained model pkl
 using the following code:
