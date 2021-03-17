@@ -8,7 +8,7 @@
 
 # --- File Name: run_editing_ps_sc.py
 # --- Creation Date: 30-05-2020
-# --- Last Modified: Tue 16 Mar 2021 22:35:41 AEDT
+# --- Last Modified: Wed 17 Mar 2021 17:06:30 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -156,14 +156,14 @@ def main():
     parser_images_editing = subparsers.add_parser('images-editing', help='Images editing')
     parser_images_editing.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
     parser_images_editing.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
-    parser_images_editing.add_argument('--exist_imgs_dir', help='Dir for used input images', default='inputs', metavar='EXIST')
+    parser_images_editing.add_argument('--exist_imgs_dir', help='Folder containing input images', default='inputs', metavar='EXIST')
     parser_images_editing.add_argument('--face_source_ls', help='Image names to provide faces',
                                        default='[img1.png, img2.png]', type=_str_to_list)
     parser_images_editing.add_argument('--attr_source_dict', help='Image names and attrs',
                                        default='{img1.png: [azimuth, haircolor]; img2.png: [smile]}', type=_str_to_attrsourcedict)
     parser_images_editing.add_argument('--attr2idx_dict', help='Attr names to attr idx in latent codes',
                                        default='{azimuth: 10, haircolor: 17, smile: 6}', type=_str_to_attr2idx)
-    parser_images_editing.add_argument('--create_new_G', help='If create a new G for projection.', default=False, type=_str_to_bool)
+    parser_images_editing.add_argument('--create_new_G', help='If create a new G for projection.', default=True, type=_str_to_bool)
     parser_images_editing.add_argument('--new_func_name', help='new G func name if create new G', default='training.ps_sc_networks2.G_main_ps_sc')
 
     args = parser.parse_args()

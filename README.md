@@ -83,7 +83,60 @@ CUDA_VISIBLE_DEVICES=0,1 \
 ```
 Note that for the dataset directory we need to separate
 the path into --data-dir and --dataset tags.
-The --model_type tag only specifies the PS-loss, and 
-we need to use the C_spgroup-n_squares-n_codes in the --module_list tag 
+The --model_type tag only specifies the PS-loss, and
+we need to use the C_spgroup-n_squares-n_codes in the --module_list tag
 to specify where to insert the Spatial Constriction modules in the generator.
 The latent traversals and metrics will be logged in the resulting directory.
+The --C_lambda tag is the hyper-parameter for modulating the PS-loss.
+
+## Generation
+We can generate random images or traversals based on a pretrained model pkl
+using the following code:
+```
+CUDA_VISIBLE_DEVICES=0 \
+    python run_generator_ps_sc.py generate-images \
+    --network /path/to/xxx.pkl \
+    --seeds 0-10 \
+    --result-dir /path/to/gen_results_dir
+```
+and
+```
+CUDA_VISIBLE_DEVICES=0 \
+    python run_generator_ps_sc.py generate-traversals \
+    --network /path/to/xxx.pkl \
+    --seeds 0-10 \
+    --result-dir /path/to/traversal_results_dir
+```
+
+## Attributes Editing
+We can conduct attributes editing with a disentangled model.
+Currently we only use generated images for this experiment due to the
+unsatisfactory quality of the real-image projection into
+disentangled latent codes.
+
+First we need to generate some images and put them into a directory,
+e.g. /path/to/existing_generated_imgs_dir.
+Second we need to assign the concepts to meaningful latent dimensions
+using the --attr2idx_dict tag. For example, if the 23th dimension
+represents azimuth concept, we add the item {azimuth:23} into the dictionary.
+Third we need to which images to provide source attributes. We use the
+--attr_source_dict tag to realize it. Note that there could be multiple
+dimensions representing a single concept (e.g. in the following example
+there  are 4 dimensions capturing the background information),
+therefore it is more desirable to ensure the source images provide all
+these dimensions (attributes) as a whole.
+A source image can provide multiple attributes.
+Finally we need to specify the face-source images with --face_source_ls tag.
+All the face-source and attribute-source images should be located in the
+--exist_imgs_dir.
+An example code is as follows:
+```
+python run_editing_ps_sc.py \
+    images-editing \
+    --network /path/to/xxx.pkl \
+    --result-dir /path/to/editing_results \
+    --exist_imgs_dir /path/to/existing_generated_imgs_dir \
+    --face_source_ls '[seed1003.png, seed1181.png, seed1191.png]' \
+    --attr_source_dict '{seed1023.png: [azimuth, smile]; seed1289.png: [age,fringe]; seed1070.png: [lighting_right,lighting_left,lighting_vertical]}' \
+    --attr2idx_dict '{lighting_right:33, yellowish:32, lighting_left:31, background_4:30, background_3:29, background_2: 26, background_1:18, gender:28, haircolor:27, lighting_vertical:25, clothes_color:24, azimuth:23, fringe:21, hair_style:16, smile:15, age:10, shoulder:9, glasses:8, elevation:5}'
+```

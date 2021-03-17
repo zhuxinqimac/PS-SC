@@ -8,7 +8,7 @@
 
 # --- File Name: run_generator_ps_sc.py
 # --- Creation Date: 26-05-2020
-# --- Last Modified: Tue 16 Mar 2021 17:19:08 AEDT
+# --- Last Modified: Wed 17 Mar 2021 17:35:20 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -213,57 +213,6 @@ def generate_gifs(network_pkl, exist_imgs_dir,
                          append_images=imgs_to_save[1:], save_all=True, duration=100, loop=0)
 
 
-
-#----------------------------------------------------------------------------
-
-def style_mixing_example(network_pkl, row_seeds, col_seeds, truncation_psi, col_styles, minibatch_size=4):
-    print('Loading networks from "%s"...' % network_pkl)
-    _G, _D, Gs = pretrained_networks.load_networks(network_pkl)
-    w_avg = Gs.get_var('dlatent_avg') # [component]
-
-    Gs_syn_kwargs = dnnlib.EasyDict()
-    Gs_syn_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
-    Gs_syn_kwargs.randomize_noise = False
-    Gs_syn_kwargs.minibatch_size = minibatch_size
-
-    print('Generating W vectors...')
-    all_seeds = list(set(row_seeds + col_seeds))
-    all_z = np.stack([np.random.RandomState(seed).randn(*Gs.input_shape[1:]) for seed in all_seeds]) # [minibatch, component]
-    all_w = Gs.components.mapping.run(all_z, None) # [minibatch, layer, component]
-    all_w = w_avg + (all_w - w_avg) * truncation_psi # [minibatch, layer, component]
-    w_dict = {seed: w for seed, w in zip(all_seeds, list(all_w))} # [layer, component]
-
-    print('Generating images...')
-    all_images = Gs.components.synthesis.run(all_w, **Gs_syn_kwargs) # [minibatch, height, width, channel]
-    image_dict = {(seed, seed): image for seed, image in zip(all_seeds, list(all_images))}
-
-    print('Generating style-mixed images...')
-    for row_seed in row_seeds:
-        for col_seed in col_seeds:
-            w = w_dict[row_seed].copy()
-            w[col_styles] = w_dict[col_seed][col_styles]
-            image = Gs.components.synthesis.run(w[np.newaxis], **Gs_syn_kwargs)[0]
-            image_dict[(row_seed, col_seed)] = image
-
-    print('Saving images...')
-    for (row_seed, col_seed), image in image_dict.items():
-        PIL.Image.fromarray(image, 'RGB').save(dnnlib.make_run_dir_path('%d-%d.png' % (row_seed, col_seed)))
-
-    print('Saving image grid...')
-    _N, _C, H, W = Gs.output_shape
-    canvas = PIL.Image.new('RGB', (W * (len(col_seeds) + 1), H * (len(row_seeds) + 1)), 'black')
-    for row_idx, row_seed in enumerate([None] + row_seeds):
-        for col_idx, col_seed in enumerate([None] + col_seeds):
-            if row_seed is None and col_seed is None:
-                continue
-            key = (row_seed, col_seed)
-            if row_seed is None:
-                key = (col_seed, col_seed)
-            if col_seed is None:
-                key = (row_seed, row_seed)
-            canvas.paste(PIL.Image.fromarray(image_dict[key], 'RGB'), (W * col_idx, H * row_idx))
-    canvas.save(dnnlib.make_run_dir_path('grid.png'))
-
 #----------------------------------------------------------------------------
 
 def _parse_num_range(s):
@@ -321,9 +270,7 @@ _examples = '''examples:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='''StyleGAN2 generator.
-
-Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
+        description='''PS-SC GAN generator.''',
         epilog=_examples,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -337,19 +284,11 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
     parser_generate_images.add_argument('--create_new_G', help='If create a new G for projection.', default=False, type=_str_to_bool)
     parser_generate_images.add_argument('--new_func_name', help='new G func name if create new G', default='training.ps_sc_networks2.G_main_ps_sc')
 
-    parser_style_mixing_example = subparsers.add_parser('style-mixing-example', help='Generate style mixing video')
-    parser_style_mixing_example.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
-    parser_style_mixing_example.add_argument('--row-seeds', type=_parse_num_range, help='Random seeds to use for image rows', required=True)
-    parser_style_mixing_example.add_argument('--col-seeds', type=_parse_num_range, help='Random seeds to use for image columns', required=True)
-    parser_style_mixing_example.add_argument('--col-styles', type=_parse_num_range, help='Style layer range (default: %(default)s)', default='0-6')
-    parser_style_mixing_example.add_argument('--truncation-psi', type=float, help='Truncation psi (default: %(default)s)', default=0.5)
-    parser_style_mixing_example.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
-
     parser_generate_travs = subparsers.add_parser('generate-traversals', help='Generate traversals')
     parser_generate_travs.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
     parser_generate_travs.add_argument('--seeds', type=_parse_num_range, help='List of random seeds', required=True)
     parser_generate_travs.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
-    parser_generate_travs.add_argument('--tpl_metric', help='TPL to use', default='tpl', type=str)
+    parser_generate_travs.add_argument('--tpl_metric', help='TPL to use', default='tpl_small', type=str)
     parser_generate_travs.add_argument('--n_samples_per', help='N samplers per row', default=7, type=int)
     parser_generate_travs.add_argument('--topk_dims_to_show', help='Top k dims to show', default=-1, type=int)
     parser_generate_travs.add_argument('--return_atts', help='If save atts.', default=False, type=_str_to_bool)
@@ -363,7 +302,7 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
 
     parser_generate_gifs = subparsers.add_parser('generate-gifs', help='Generate gifs')
     parser_generate_gifs.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
-    parser_generate_gifs.add_argument('--exist_imgs_dir', help='Dir for used input images', default='inputs', metavar='EXIST')
+    parser_generate_gifs.add_argument('--exist_imgs_dir', help='Directory for input images', default='inputs', metavar='EXIST')
     parser_generate_gifs.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)', default='results', metavar='DIR')
     parser_generate_gifs.add_argument('--used_imgs_ls', help='Image names to use', default='[img1.png, img2.png]', type=_str_to_list)
     parser_generate_gifs.add_argument('--used_semantics_ls', help='Semantics to use', default='[azimuth, haircolor]', type=_str_to_list)
@@ -389,7 +328,6 @@ Run 'python %(prog)s <subcommand> --help' for subcommand help.''',
 
     func_name_map = {
         'generate-images': 'run_generator_ps_sc.generate_images',
-        'style-mixing-example': 'run_generator_ps_sc.style_mixing_example',
         'generate-traversals': 'run_generator_ps_sc.generate_traversals',
         'generate-domain-shift': 'run_generator_ps_sc.generate_domain_shift',
         'generate-gifs': 'run_generator_ps_sc.generate_gifs'
