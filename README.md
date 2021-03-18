@@ -58,7 +58,7 @@ CUDA_VISIBLE_DEVICES=0,1 \
     --result-dir /path/to/results_ps_sc/celeba \
     --data-dir /path/to/datasets \
     --dataset celeba_tfr \
-    --metrics fid1k,tpl_small \
+    --metrics fid1k,tpl_small_0.3 \
     --num-gpus 2 \
     --mirror-augment True \
     --model_type ps_sc_gan \
@@ -96,7 +96,7 @@ CUDA_VISIBLE_DEVICES=0 \
     python run_metrics.py \
     --result-dir /path/to/evaluate_results_dir \
     --network /path/to/xxx.pkl \
-    --metrics fid50k,tpl_large,ppl2_wend \
+    --metrics fid50k,tpl_large_0.3,ppl2_wend \
     --data-dir /path/to/datasets \
     --dataset celeba_tfr \
     --include_I True \
