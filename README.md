@@ -4,6 +4,9 @@ This repository contains the main code for training a PS-SC GAN
 (a GAN implemented with the Perceptual Simplicity and Spatial Constriction
 constraints) introduced in the paper
 [Where and What? Examining Interpretable Disentangled Representations].
+The code for computing the TPL for model checkpoints from 
+[disentanglemen_lib](https://github.com/google-research/disentanglement_lib)
+can be found in [this](https://github.com/zhuxinqimac/TPL-Evaluate) repository.
 
 ## Requirements
 
@@ -157,4 +160,44 @@ python run_editing_ps_sc.py \
     --face_source_ls '[seed1003.png, seed1181.png, seed1191.png]' \
     --attr_source_dict '{seed1023.png: [azimuth, smile]; seed1289.png: [age,fringe]; seed1070.png: [lighting_right,lighting_left,lighting_vertical]}' \
     --attr2idx_dict '{lighting_right:33, yellowish:32, lighting_left:31, background_4:30, background_3:29, background_2: 26, background_1:18, gender:28, haircolor:27, lighting_vertical:25, clothes_color:24, azimuth:23, fringe:21, hair_style:16, smile:15, age:10, shoulder:9, glasses:8, elevation:5}'
+```
+
+## Accumulated Perceptual Distance with 2D Rotation
+If a disentangled model has been trained,
+the accumulated perceptual distance figures shown in Section 3.3 (and Section 8 in the Appendix)
+can be plotted using the model checkpoint with the following code:
+```
+# Celeba
+# The dimension for concepts: azimuth: 9; haircolor: 19; smile: 5; hair: 4; fringe: 11; elevation: 10; back: 18;
+CUDA_VISIBLE_DEVICES=0 \
+    python plot_latent_space.py \
+    plot-rot-fn \
+    --network /path/to/xxx.pkl \
+    --seeds 1-10 \
+    --latent_pair 19_5 \
+    --load_gan True \
+    --result-dir /path/to/acc_results/rot_19_5
+```
+The 2D latent traversal grid can be presented with code:
+```
+# Celeba
+# The dimension for concepts: azimuth: 9; haircolor: 19; smile: 5; hair: 4; fringe: 11; elevation: 10; back: 18;
+CUDA_VISIBLE_DEVICES=0 \
+    python plot_latent_space.py \
+    generate-grids \
+    --network /path/to/xxx.pkl \
+    --seeds 1-10 \
+    --latent_pair 19_5 \
+    --load_gan True \
+    --result-dir /path/to/acc_results/grid_19_5
+```
+
+## Citation
+```
+@inproceedings{Xinqi_cvpr21,
+author={Xinqi Zhu and Chang Xu and Dacheng Tao},
+title={Where and What? Examining Interpretable Disentangled Representations},
+booktitle={CVPR},
+year={2021}
+}
 ```

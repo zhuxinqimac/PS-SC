@@ -8,7 +8,7 @@
 
 # --- File Name: plot_latent_space.py
 # --- Creation Date: 05-10-2020
-# --- Last Modified: Tue 16 Mar 2021 22:24:58 AEDT
+# --- Last Modified: Sat 20 Mar 2021 17:36:30 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -249,7 +249,7 @@ def main():
         '--n_samples_per',
         type=int,
         help='number of samples per row in grid',
-        default=10)
+        default=14)
     parser_generate_images_grids.add_argument(
         '--bound',
         type=float,
@@ -287,11 +287,11 @@ def main():
     parser_plot_fn.add_argument('--n_samples_per',
                                 type=int,
                                 help='number of samples per row in grid',
-                                default=10)
+                                default=14)
     parser_plot_fn.add_argument('--bound',
                                 type=float,
                                 help='interval [-bound, bound] for traversal',
-                                default=2)
+                                default=4)
     parser_plot_fn.add_argument(
         '--rot_start',
         type=int,
@@ -301,11 +301,11 @@ def main():
         '--rot_end',
         type=int,
         help='ending rotation degree of traversal coordinate system',
-        default=-180)
+        default=180)
     parser_plot_fn.add_argument('--rot_interval',
                                 type=int,
                                 help='rotation interval',
-                                default=1)
+                                default=3)
     parser_plot_fn.add_argument('--coord_adj',
                                 type=int,
                                 help='x axis adjustment',
