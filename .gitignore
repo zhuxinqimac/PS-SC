@@ -7,3 +7,4 @@
 *.so
 *.pbs.*
 *hpc_usage_stats.json
+test_nvcc
