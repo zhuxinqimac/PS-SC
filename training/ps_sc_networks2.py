@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 16:27:22 AEDT
+# --- Last Modified: Mon 05 Apr 2021 22:15:56 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -138,7 +138,7 @@ def G_synthesis_modular_ps_sc(
         G_nf_scale=4,
         **kwargs):  # Ignore unrecognized keyword args.
     '''
-    Modularized variation-consistent network2.
+    Modularized PS-SC network.
     '''
 
     def nf(stage):

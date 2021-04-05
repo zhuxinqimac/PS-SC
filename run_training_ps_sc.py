@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Wed 17 Mar 2021 16:50:20 AEDT
+# --- Last Modified: Mon 05 Apr 2021 22:15:22 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -166,7 +166,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
     if not(module_list is None):
         for i, key in enumerate(key_ls):
             m_name = key.split('-')[0]
-            if (m_name in LATENT_MODULES) and (not m_name == 'D_global'):
+            if m_name in LATENT_MODULES:
                 n_continuous += size_ls[i]
 
     kwargs.update(dataset_args=dataset_args, sched_args=sched, grid_args=grid, metric_arg_list=metrics,
