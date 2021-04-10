@@ -170,6 +170,9 @@ python run_editing_ps_sc.py \
 ```
 
 ## Accumulated Perceptual Distance with 2D Rotation
+
+![fringe_vs_background](./imgs/fringe_vs_back.jpg)
+
 If a disentangled model has been trained,
 the accumulated perceptual distance figures shown in Section 3.3 (and Section 8 in the Appendix)
 can be plotted using the model checkpoint with the following code:
