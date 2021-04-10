@@ -1,14 +1,14 @@
 # PS-SC GAN
 
+![trav_animation](./imgs/traversals.gif)
+
 This repository contains the main code for training a PS-SC GAN
 (a GAN implemented with the Perceptual Simplicity and Spatial Constriction
 constraints) introduced in the paper
 [Where and What? Examining Interpretable Disentangled Representations].
-The code for computing the TPL for model checkpoints from 
+The code for computing the TPL for model checkpoints from
 [disentanglemen_lib](https://github.com/google-research/disentanglement_lib)
 can be found in [this](https://github.com/zhuxinqimac/TPL-Evaluate) repository.
-
-![architecture](./imgs/traversals.gif)
 
 ## Requirements
 
@@ -56,6 +56,9 @@ python dataset_tool.py create_subset_from_shape3d /path/to/new_tfr_dir /path/to/
 See dataset_tool.py for how other datasets can be produced.
 
 ## Training
+
+![architecture](./imgs/architecture.jpg)
+
 To train a model on CelebA with 2 GPUs, run code:
 ```
 CUDA_VISIBLE_DEVICES=0,1 \
@@ -136,6 +139,8 @@ We can conduct attributes editing with a disentangled model.
 Currently we only use generated images for this experiment due to the
 unsatisfactory quality of the real-image projection into
 disentangled latent codes.
+
+![attr_edit](./imgs/attr_grid_light.jpg)
 
 First we need to generate some images and put them into a directory,
 e.g. /path/to/existing_generated_imgs_dir.
