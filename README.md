@@ -8,6 +8,8 @@ The code for computing the TPL for model checkpoints from
 [disentanglemen_lib](https://github.com/google-research/disentanglement_lib)
 can be found in [this](https://github.com/zhuxinqimac/TPL-Evaluate) repository.
 
+![architecture](./imgs/architecture.pdf)
+
 ## Requirements
 
 * Python == 3.7.2
