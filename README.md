@@ -5,7 +5,7 @@
 This repository contains the main code for training a PS-SC GAN
 (a GAN implemented with the Perceptual Simplicity and Spatial Constriction
 constraints) introduced in the paper
-[Where and What? Examining Interpretable Disentangled Representations].
+[Where and What? Examining Interpretable Disentangled Representations](https://arxiv.org/abs/2104.05622).
 The code for computing the TPL for model checkpoints from
 [disentanglemen_lib](https://github.com/google-research/disentanglement_lib)
 can be found in [this](https://github.com/zhuxinqimac/TPL-Evaluate) repository.
