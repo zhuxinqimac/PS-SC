@@ -59,7 +59,7 @@ See dataset_tool.py for how other datasets can be produced.
 
 ![architecture](./imgs/architecture.jpg)
 
-Pretrained models are shared [here](https://drive.google.com/drive/folders/15kyAT8-PO2vfaawxRVF-YizPywxyJYkv?usp=sharing).
+Pretrained models are shared [here](https://drive.google.com/drive/folders/1463kq_GbzpSYDDeuv4TNSQgPRYsa0MGF?usp=sharing).
 To train a model on CelebA with 2 GPUs, run code:
 ```
 CUDA_VISIBLE_DEVICES=0,1 \
