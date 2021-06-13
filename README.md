@@ -117,7 +117,7 @@ inference network, and --mapping_nodup is to indicate that the loaded model
 has no W space duplication as in stylegan.
 
 ## Generation
-We can generate random images or traversals based on a pretrained model pkl
+We can generate random images, traversals or gifs based on a pretrained model pkl
 using the following code:
 ```
 CUDA_VISIBLE_DEVICES=0 \
@@ -134,6 +134,21 @@ CUDA_VISIBLE_DEVICES=0 \
     --seeds 0-10 \
     --result-dir /path/to/traversal_results_dir
 ```
+and
+```
+python run_generator_ps_sc.py \
+    generate-gifs \
+    --network /path/to/xxx.pkl \
+    --exist_imgs_dir git_repo/PS-SC/imgs \
+    --result-dir /path/to/results/gif \
+    --used_imgs_ls '[sample1.png, sample2.png, sample3.png]' \
+    --used_semantics_ls '[azimuth, haircolor, smile, gender, main_fringe, left_fringe, age, light_right, light_left, light_vertical, hair_style, clothes_color, saturation, ambient_color, elevation, neck, right_shoulder, left_shoulder, background_1, background_2, background_3, background_4, right_object, left_object]' \
+    --attr2idx_dict '{ambient_color:35, none1:34, light_right:33, saturation:32, light_left:31, background_4:30, background_3:29, gender:28, haircolor:27, background_2: 26, light_vertical:25, clothes_color:24, azimuth:23, right_object:22, main_fringe:21, right_shoulder:20, none4:19, background_1:18, neck:17, hair_style:16, smile:15, none6:14, left_fringe:13, none8:12, none9:11, age:10, shoulder:9, glasses:8, none10:7, left_object: 6, elevation:5, none12:4, none13:3, none14:2, left_shoulder:1, none16:0}' \
+    --create_new_G True
+```
+A gif generation script is provided in the shared pretrained FFHQ folder.
+The images referred in --used_imgs_ls is provided in the imgs folder
+in this repository.
 
 ## Attributes Editing
 We can conduct attributes editing with a disentangled model.
