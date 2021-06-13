@@ -179,10 +179,10 @@ python run_editing_ps_sc.py \
     images-editing \
     --network /path/to/xxx.pkl \
     --result-dir /path/to/editing_results \
-    --exist_imgs_dir /path/to/existing_generated_imgs_dir \
-    --face_source_ls '[seed1003.png, seed1181.png, seed1191.png]' \
-    --attr_source_dict '{seed1023.png: [azimuth, smile]; seed1289.png: [age,fringe]; seed1070.png: [lighting_right,lighting_left,lighting_vertical]}' \
-    --attr2idx_dict '{lighting_right:33, yellowish:32, lighting_left:31, background_4:30, background_3:29, background_2: 26, background_1:18, gender:28, haircolor:27, lighting_vertical:25, clothes_color:24, azimuth:23, fringe:21, hair_style:16, smile:15, age:10, shoulder:9, glasses:8, elevation:5}'
+    --exist_imgs_dir git_repo/PS-SC/imgs \
+    --face_source_ls '[sample1.png, sample2.png, sample3.png]' \
+    --attr_source_dict '{sample1.png: [azimuth, smile]; sample2.png: [age,fringe]; sample3.png: [lighting_right,lighting_left,lighting_vertical]}' \
+    --attr2idx_dict '{ambient_color:35, none1:34, light_right:33, saturation:32, light_left:31, background_4:30, background_3:29, gender:28, haircolor:27, background_2: 26, light_vertical:25, clothes_color:24, azimuth:23, right_object:22, main_fringe:21, right_shoulder:20, none4:19, background_1:18, neck:17, hair_style:16, smile:15, none6:14, left_fringe:13, none8:12, none9:11, age:10, shoulder:9, glasses:8, none10:7, left_object: 6, elevation:5, none12:4, none13:3, none14:2, left_shoulder:1, none16:0}' \
 ```
 
 ## Accumulated Perceptual Distance with 2D Rotation
