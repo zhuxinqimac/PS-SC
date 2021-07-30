@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Mon 05 Apr 2021 22:15:56 AEST
+# --- Last Modified: Sat 31 Jul 2021 01:33:15 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -117,7 +117,6 @@ def G_synthesis_modular_ps_sc(
         dlatents_in,  # Input: Disentangled latents (W) [minibatch, label_size+dlatent_size].
         dlatent_size=7,  # Disentangled latent (W) dimensionality. Including discrete info, rotation, scaling, xy shearing, and xy translation.
         label_size=0,  # Label dimensionality, 0 if no labels.
-        module_list=None,  # A list containing module names, which represent semantic latents (exclude labels).
         num_channels=1,  # Number of output color channels.
         resolution=128,  # Output resolution.
         architecture='skip', # Architecture: 'orig', 'skip', 'resnet'.
@@ -136,9 +135,11 @@ def G_synthesis_modular_ps_sc(
         randomize_noise=True,  # True = randomize noise inputs every time (non-deterministic), False = read noise inputs from variables.
         return_atts=False,  # If return atts.
         G_nf_scale=4,
+        key_ls=None,  # List of module keys.
+        size_ls=None,  # List of module sizes.
         **kwargs):  # Ignore unrecognized keyword args.
     '''
-    Modularized PS-SC network.
+    Modularized PS-SC generator network.
     '''
 
     def nf(stage):
@@ -147,13 +148,8 @@ def G_synthesis_modular_ps_sc(
     act = nonlinearity
     images_out = None
 
-    # Note that module_list may include modules not containing latents,
-    # e.g. Conv layers (size in this case means number of conv layers).
-    key_ls, size_ls, count_dlatent_size = split_module_names(module_list)
-
     # Primary inputs.
-    assert dlatent_size == count_dlatent_size
-    dlatents_in.set_shape([None, count_dlatent_size])
+    dlatents_in.set_shape([None, dlatent_size])
     dlatents_in = tf.cast(dlatents_in, dtype)
 
     # Early layers consists of 4x4 constant layer.
@@ -163,8 +159,8 @@ def G_synthesis_modular_ps_sc(
     subkwargs.update(dlatents_in=dlatents_in, act=act, dtype=dtype, resample_kernel=resample_kernel,
                      fused_modconv=fused_modconv, use_noise=use_noise, randomize_noise=randomize_noise,
                      resolution=resolution, fmap_base=fmap_base, architecture=architecture,
-                     num_channels=num_channels,
-                     fmap_min=fmap_min, fmap_max=fmap_max, fmap_decay=fmap_decay, **kwargs)
+                     num_channels=num_channels, fmap_min=fmap_min, fmap_max=fmap_max,
+                     fmap_decay=fmap_decay, **kwargs)
 
     # Build modules by module_dict.
     start_idx = 0
@@ -173,9 +169,9 @@ def G_synthesis_modular_ps_sc(
     noise_inputs = []
     for scope_idx, k in enumerate(key_ls):
         if k == 'Const':
-            # e.g. {'Const': 3}
+            # e.g. {'Const': 512}
             x = build_Const_layers(init_dlatents_in=x, name=k, n_feats=size_ls[scope_idx],
-                               scope_idx=scope_idx, fmaps=nf(scope_idx//G_nf_scale), **subkwargs)
+                                   scope_idx=scope_idx, fmaps=nf(scope_idx//G_nf_scale), **subkwargs)
         elif k == 'C_global':
             # e.g. {'C_global': 2}
             x = build_C_global_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
@@ -193,7 +189,7 @@ def G_synthesis_modular_ps_sc(
                                           scope_idx=scope_idx, fmaps=nf(scope_idx//G_nf_scale), return_atts=False, n_subs=n_subs, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k == 'C_spgroup_sm':
-            # e.g. {'C_spgroup': 2}
+            # e.g. {'C_spgroup_sm': 2}
             if return_atts:
                 x, atts_tmp = build_C_spgroup_softmax_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
                                           scope_idx=scope_idx, fmaps=nf(scope_idx//G_nf_scale), return_atts=True, **subkwargs)
@@ -231,111 +227,7 @@ def G_synthesis_modular_ps_sc(
 
 
 #----------------------------------------------------------------------------
-# Head network of infogan2.
-
-def head_infogan2(
-        fake1,  # First input: generated image from z [minibatch, channel, height, width].
-        num_channels=3,  # Number of input color channels. Overridden based on dataset.
-        resolution=1024,  # Input resolution. Overridden based on dataset.
-        dlatent_size=10,
-        fmap_base=16 <<
-        10,  # Overall multiplier for the number of feature maps.
-        fmap_decay=1.0,  # log2 feature map reduction when doubling the resolution.
-        fmap_min=1,  # Minimum number of feature maps in any layer.
-        fmap_max=512,  # Maximum number of feature maps in any layer.
-        architecture='resnet',  # Architecture: 'orig', 'skip', 'resnet'.
-        nonlinearity='lrelu',  # Activation function: 'relu', 'lrelu', etc.
-        mbstd_group_size=4,  # Group size for the minibatch standard deviation layer, 0 = disable.
-        mbstd_num_features=1,  # Number of features for the minibatch standard deviation layer.
-        dtype='float32',  # Data type to use for activations and outputs.
-        resample_kernel=[
-            1, 3, 3, 1
-        ],  # Low-pass filter to apply when resampling activations. None = no filtering.
-        **_kwargs):  # Ignore unrecognized keyword args.
-
-    resolution_log2 = int(np.log2(resolution))
-    assert resolution == 2**resolution_log2 and resolution >= 4
-
-    def nf(stage):
-        return np.clip(int(fmap_base / (2.0**(stage * fmap_decay))), fmap_min,
-                       fmap_max)
-
-    assert architecture in ['orig', 'skip', 'resnet']
-    act = nonlinearity
-
-    fake1.set_shape([None, num_channels, resolution, resolution])
-    fake1 = tf.cast(fake1, dtype)
-    images_in = fake1
-
-    # Building blocks for main layers.
-    def fromrgb(x, y, res):  # res = 2..resolution_log2
-        with tf.variable_scope('FromRGB'):
-            t = apply_bias_act(conv2d_layer(y, fmaps=nf(res - 1), kernel=1),
-                               act=act)
-            return t if x is None else x + t
-
-    def block(x, res):  # res = 2..resolution_log2
-        t = x
-        with tf.variable_scope('Conv0'):
-            x = apply_bias_act(conv2d_layer(x, fmaps=nf(res - 1), kernel=3),
-                               act=act)
-        with tf.variable_scope('Conv1_down'):
-            x = apply_bias_act(conv2d_layer(x,
-                                            fmaps=nf(res - 2),
-                                            kernel=3,
-                                            down=True,
-                                            resample_kernel=resample_kernel),
-                               act=act)
-        if architecture == 'resnet':
-            with tf.variable_scope('Skip'):
-                t = conv2d_layer(t,
-                                 fmaps=nf(res - 2),
-                                 kernel=1,
-                                 down=True,
-                                 resample_kernel=resample_kernel)
-                x = (x + t) * (1 / np.sqrt(2))
-        return x
-
-    def downsample(y):
-        with tf.variable_scope('Downsample'):
-            return downsample_2d(y, k=resample_kernel)
-
-    # Main layers.
-    x = None
-    y = images_in
-    for res in range(resolution_log2, 2, -1):
-        with tf.variable_scope('%dx%d' % (2**res, 2**res)):
-            if architecture == 'skip' or res == resolution_log2:
-                x = fromrgb(x, y, res)
-            x = block(x, res)
-            if architecture == 'skip':
-                y = downsample(y)
-
-    # Final layers.
-    with tf.variable_scope('4x4'):
-        if architecture == 'skip':
-            x = fromrgb(x, y, 2)
-        if mbstd_group_size > 1:
-            with tf.variable_scope('MinibatchStddev'):
-                x = minibatch_stddev_layer(x, mbstd_group_size,
-                                           mbstd_num_features)
-        with tf.variable_scope('Conv'):
-            x = apply_bias_act(conv2d_layer(x, fmaps=nf(1), kernel=3), act=act)
-        with tf.variable_scope('Dense0'):
-            x = apply_bias_act(dense_layer(x, fmaps=nf(0)), act=act)
-
-    # Output layer with label conditioning from "Which Training Methods for GANs do actually Converge?"
-    with tf.variable_scope('Output'):
-        with tf.variable_scope('Dense_VC'):
-            x = apply_bias_act(dense_layer(x, fmaps=dlatent_size))
-
-    # Output.
-    assert x.dtype == tf.as_dtype(dtype)
-    return x
-
-#----------------------------------------------------------------------------
-# Head network of PS-SC.
-
+# Head network of PS-SC or InfoGAN.
 
 def head_ps_sc(
         fake1,  # First input: generated image from z [minibatch, channel, height, width].
@@ -361,8 +253,7 @@ def head_ps_sc(
     assert resolution == 2**resolution_log2 and resolution >= 4
 
     def nf(stage):
-        return np.clip(int(fmap_base / (2.0**(stage * fmap_decay))), fmap_min,
-                       fmap_max)
+        return np.clip(int(fmap_base / (2.0**(stage * fmap_decay))), fmap_min, fmap_max)
 
     assert architecture in ['orig', 'skip', 'resnet']
     act = nonlinearity

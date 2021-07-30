@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Mon 05 Apr 2021 22:15:22 AEST
+# --- Last Modified: Sat 31 Jul 2021 01:13:12 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -38,92 +38,57 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         epsilon_loss=3, random_eps=False, latent_type='uniform',
         batch_size=32, batch_per_gpu=16,
         return_atts=False, random_seed=1000,
-        module_I_list=None, module_D_list=None,
         fmap_min=16, fmap_max=512, G_nf_scale=4,
         norm_ord=2, topk_dims_to_show=20,
         learning_rate=0.002, avg_mv_for_I=False, use_cascade=False, cascade_alt_freq_k=1,
         network_snapshot_ticks=10):
-    train = EasyDict(run_func_name='training.training_loop_ps_sc.training_loop_ps_sc'
-                     )  # Options for training loop.
+    train = EasyDict(run_func_name='training.training_loop_ps_sc.training_loop_ps_sc')  # Options for training loop.
 
     if not(module_list is None):
         module_list = _str_to_list(module_list)
         key_ls, size_ls, count_dlatent_size = split_module_names(module_list)
-    if not(module_I_list is None):
-        module_I_list = _str_to_list(module_I_list)
-        key_I_ls, size_I_ls, count_dlatent_I_size = split_module_names(module_I_list)
-    if not(module_D_list is None):
-        module_D_list = _str_to_list(module_D_list)
-        key_D_ls, size_D_ls, count_dlatent_D_size = split_module_names(module_D_list)
 
-    if model_type == 'info_gan': # Independent branch version InfoGAN
-        G = EasyDict(
-            func_name='training.ps_sc_networks2.G_main_ps_sc',
-            synthesis_func='G_synthesis_modular_ps_sc',
-            fmap_min=fmap_min, fmap_max=fmap_max, fmap_decay=fmap_decay, latent_size=count_dlatent_size,
-            dlatent_size=count_dlatent_size,
-            module_list=module_list, use_noise=True, return_atts=return_atts,
-            G_nf_scale=G_nf_scale
-        )  # Options for generator network.
-        I = EasyDict(func_name='training.ps_sc_networks2.head_infogan2',
-                     dlatent_size=count_dlatent_size,
-                     fmap_min=fmap_min, fmap_max=fmap_max)
-        D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
-            fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
-        desc = 'info_gan'
-    elif model_type == 'ps_sc_gan': # COMA-FAIN
-        G = EasyDict(
-            func_name='training.ps_sc_networks2.G_main_ps_sc',
-            synthesis_func='G_synthesis_modular_ps_sc',
-            fmap_min=fmap_min, fmap_max=fmap_max, fmap_decay=fmap_decay, latent_size=count_dlatent_size,
-            dlatent_size=count_dlatent_size,
-            module_list=module_list, use_noise=True, return_atts=return_atts,
-            G_nf_scale=G_nf_scale,
-        )  # Options for generator network.
+    # Config I net
+    if model_type == 'info_gan' or model_type == 'ps_sc_gan': # InfoGAN or PS-SC
         I = EasyDict(func_name='training.ps_sc_networks2.head_ps_sc',
-                     dlatent_size=count_dlatent_size,
-                     fmap_min=fmap_min, fmap_max=fmap_max)
-        D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
-            fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
-        desc = 'ps_sc_gan'
+                     dlatent_size=count_dlatent_size, fmap_min=fmap_min, fmap_max=fmap_max)
     elif model_type == 'gan': # Just modular GAN.
-        G = EasyDict(
-            func_name='training.ps_sc_networks2.G_main_ps_sc',
-            synthesis_func='G_synthesis_modular_ps_sc',
-            fmap_min=fmap_min, fmap_max=fmap_max, fmap_decay=fmap_decay, latent_size=count_dlatent_size,
-            dlatent_size=count_dlatent_size,
-            module_list=module_list, use_noise=True, return_atts=return_atts,
-            G_nf_scale=G_nf_scale
-        )  # Options for generator network.
         I = EasyDict()
-        D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
-            fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
-        desc = 'gan'
     else:
         raise ValueError('Not supported model tyle: ' + model_type)
 
-    G_opt = EasyDict(beta1=0.0, beta2=0.99,
-                     epsilon=1e-8)  # Options for generator optimizer.
-    D_opt = EasyDict(beta1=0.0, beta2=0.99,
-                     epsilon=1e-8)  # Options for discriminator optimizer.
+    # Config G and D net.
+    G = EasyDict(func_name='training.ps_sc_networks2.G_main_ps_sc',
+                 synthesis_func='G_synthesis_modular_ps_sc',
+                 fmap_min=fmap_min, fmap_max=fmap_max, fmap_decay=fmap_decay,
+                 latent_size=count_dlatent_size,
+                 dlatent_size=count_dlatent_size,
+                 key_ls=key_ls, size_ls=size_ls,
+                 module_list=module_list, use_noise=True, return_atts=return_atts,
+                 G_nf_scale=G_nf_scale)  # Options for generator network.
+    D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
+                 fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
+
+    desc = model_type
+
+    G_opt = EasyDict(beta1=0.0, beta2=0.99, epsilon=1e-8)  # Options for generator optimizer.
+    D_opt = EasyDict(beta1=0.0, beta2=0.99, epsilon=1e-8)  # Options for discriminator optimizer.
+
+    # Config losses
+    D_loss = EasyDict(func_name='training.loss_ps_sc.D_logistic_r1_shared',
+                      latent_type=latent_type)  # Options for discriminator loss.
     if model_type == 'info_gan': # InfoGAN
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns_info_gan',
-            C_lambda=C_lambda,
-            latent_type=latent_type, norm_ord=norm_ord)  # Options for generator loss.
-        D_loss = EasyDict(func_name='training.loss_ps_sc.D_logistic_r1_shared',
-            latent_type=latent_type)  # Options for discriminator loss.
+                          C_lambda=C_lambda,
+                          latent_type=latent_type, norm_ord=norm_ord)  # Options for generator loss.
     elif model_type == 'ps_sc_gan': # PS-SC
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns_ps_sc',
-            C_lambda=C_lambda,
-            epsilon=epsilon_loss, random_eps=random_eps, latent_type=latent_type,
-            use_cascade=use_cascade)  # Options for generator loss.
-        D_loss = EasyDict(func_name='training.loss_ps_sc.D_logistic_r1_shared',
-            latent_type=latent_type)  # Options for discriminator loss.
+                          C_lambda=C_lambda,
+                          epsilon=epsilon_loss, random_eps=random_eps, latent_type=latent_type,
+                          use_cascade=use_cascade)  # Options for generator loss.
     elif model_type == 'gan': # Just GANs
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns',
                           latent_type=latent_type)  # Options for generator loss.
-        D_loss = EasyDict(func_name='training.loss_ps_sc.D_logistic_r1_shared',
-            latent_type=latent_type)  # Options for discriminator loss.
 
     sched = EasyDict()  # Options for TrainingSchedule.
     grid = EasyDict(size='1080p', layout='random')  # Options for setup_snapshot_image_grid().
@@ -162,16 +127,10 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
                   use_ps_head=(model_type=='ps_sc_gan'),
                   avg_mv_for_I=avg_mv_for_I,
                   traversal_grid=True, return_atts=return_atts)
-    n_continuous = 0
-    if not(module_list is None):
-        for i, key in enumerate(key_ls):
-            m_name = key.split('-')[0]
-            if m_name in LATENT_MODULES:
-                n_continuous += size_ls[i]
 
     kwargs.update(dataset_args=dataset_args, sched_args=sched, grid_args=grid, metric_arg_list=metrics,
                   tf_config=tf_config, resume_pkl=resume_pkl,
-                  n_continuous=n_continuous, n_samples_per=n_samples_per,
+                  n_continuous=count_dlatent_size, n_samples_per=n_samples_per,
                   topk_dims_to_show=topk_dims_to_show, cascade_alt_freq_k=cascade_alt_freq_k,
                   network_snapshot_ticks=network_snapshot_ticks)
     kwargs.submit_config = copy.deepcopy(sc)
@@ -214,33 +173,27 @@ def _parse_comma_sep(s):
 #----------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='Train PS-SC GAN.',
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(
-        '--result-dir',
-        help='Root directory for run results (default: %(default)s)',
-        default='results',
-        metavar='DIR')
+    parser = argparse.ArgumentParser(description='Train PS-SC GAN.',
+                        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)',
+                        default='results', metavar='DIR')
     parser.add_argument('--data-dir', help='Dataset root directory', required=True)
     parser.add_argument('--dataset', help='Training dataset', required=True)
     parser.add_argument('--num-gpus', help='Number of GPUs (default: %(default)s)',
                         default=1, type=int, metavar='N')
-    parser.add_argument('--total-kimg',
-        help='Training length in thousands of images (default: %(default)s)',
-        metavar='KIMG', default=25000, type=int)
+    parser.add_argument('--total-kimg', help='Training length in thousands of images (default: %(default)s)',
+                        metavar='KIMG', default=25000, type=int)
     parser.add_argument('--gamma', help='R1 regularization weight', default=100, type=float)
     parser.add_argument('--mirror-augment', help='Mirror augment (default: %(default)s)',
                         default=False, metavar='BOOL', type=_str_to_bool)
-    parser.add_argument(
-        '--metrics', help='Comma-separated list of metrics or "none" (default: %(default)s)',
-        default='None', type=_parse_comma_sep)
+    parser.add_argument('--metrics', help='Comma-separated list of metrics or "none" (default: %(default)s)',
+                        default='None', type=_parse_comma_sep)
     parser.add_argument('--model_type', help='Type of model to train', default='ps_sc_gan',
                         type=str, metavar='MODEL_TYPE', choices=['gan', 'ps_sc_gan', 'info_gan'])
     parser.add_argument('--resume_pkl', help='Continue training using pretrained pkl.',
                         default=None, metavar='RESUME_PKL', type=str)
     parser.add_argument('--n_samples_per', help='Number of samples for each line in traversal (default: %(default)s)',
-        metavar='N_SHOWN_SAMPLES_PER_LINE', default=10, type=int)
+                        metavar='N_SHOWN_SAMPLES_PER_LINE', default=10, type=int)
     parser.add_argument('--module_list', help='Module list for modular network.',
                         default=None, metavar='MODULE_LIST', type=str)
     parser.add_argument('--batch_size', help='N batch.',
@@ -253,9 +206,8 @@ def main():
                         metavar='EPSILON_LOSS', default=0.4, type=float)
     parser.add_argument('--latent_type', help='What type of latent priori to use.',
                         metavar='LATENT_TYPE', default='uniform', choices=['uniform', 'normal', 'trunc_normal'], type=str)
-    parser.add_argument('--random_eps',
-        help='If use random epsilon in ps loss.',
-        default=True, metavar='RANDOM_EPS', type=_str_to_bool)
+    parser.add_argument('--random_eps', help='If use random epsilon in ps loss.',
+                        default=True, metavar='RANDOM_EPS', type=_str_to_bool)
     parser.add_argument('--fmap_decay', help='fmap decay for network building.',
                         metavar='FMAP_DECAY', default=0.15, type=float)
     parser.add_argument('--I_fmap_base', help='Fmap base for I.',
@@ -268,10 +220,6 @@ def main():
                         default=False, metavar='RETURN_ATTS', type=_str_to_bool)
     parser.add_argument('--random_seed', help='TF random seed.',
                         metavar='RANDOM_SEED', default=9, type=int)
-    parser.add_argument('--module_I_list', help='Module list for I modular network.',
-                        default=None, metavar='MODULE_I_LIST', type=str)
-    parser.add_argument('--module_D_list', help='Module list for D modular network.',
-                        default=None, metavar='MODULE_D_LIST', type=str)
     parser.add_argument('--fmap_min', help='FMAP min.',
                         metavar='FMAP_MIN', default=16, type=int)
     parser.add_argument('--fmap_max', help='FMAP max.',

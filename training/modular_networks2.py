@@ -8,13 +8,14 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 16:35:01 AEDT
+# --- Last Modified: Sat 31 Jul 2021 01:58:50 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
 Modular networks for PS-SC
 """
 
+import numpy as np
 import tensorflow as tf
 from training.networks_stylegan2 import dense_layer, conv2d_layer
 from training.networks_stylegan2 import apply_bias_act, naive_upsample_2d
@@ -54,12 +55,9 @@ def torgb(x, y, num_channels):
 
 def build_Const_layers(init_dlatents_in, name, n_feats, scope_idx, dtype, **subkwargs):
     with tf.variable_scope(name + '-' + str(scope_idx)):
-        x = tf.get_variable(
-            'const',
-            shape=[1, n_feats, 4, 4],
-            initializer=tf.initializers.random_normal())
-        x = tf.tile(tf.cast(x, dtype),
-                    [tf.shape(init_dlatents_in)[0], 1, 1, 1])
+        x = tf.get_variable('const', shape=[1, n_feats, 4, 4],
+                            initializer=tf.initializers.random_normal())
+        x = tf.tile(tf.cast(x, dtype), [tf.shape(init_dlatents_in)[0], 1, 1, 1])
     return x
 
 def build_C_global_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
@@ -167,8 +165,7 @@ def build_noise_layer(x, name, n_layers, scope_idx, act, use_noise, randomize_no
                     noise = tf.cast(noise_inputs[-1], x.dtype)
                 noise_strength = tf.get_variable(
                     'noise_strength-' + str(scope_idx) + '-' + str(i),
-                    shape=[],
-                    initializer=tf.initializers.zeros())
+                    shape=[], initializer=tf.initializers.zeros())
                 x += noise * tf.cast(noise_strength, x.dtype)
             x = apply_bias_act(x, act=act)
     return x
@@ -218,4 +215,53 @@ def build_res_conv_layer(x, name, n_layers, scope_idx, act, resample_kernel, fma
     with tf.variable_scope(name + 'Resampled-' + str(scope_idx)):
         x_ori = apply_bias_act(conv2d_layer(x_ori, fmaps=fmaps, kernel=1), act=act)
         x = x + x_ori
+    return x
+
+# ============================================
+# Additional layers.
+# ============================================
+
+def build_noise_only_layer(x, name, n_layers, scope_idx, act, use_noise, randomize_noise,
+                       noise_inputs=None, fmaps=128, **kwargs):
+    for i in range(n_layers):
+        if noise_inputs is not None:
+            noise_inputs.append(tf.get_variable('noise%d' % len(noise_inputs),
+                                                shape=[1, 1] + x.get_shape().as_list()[2:],
+                                                initializer=tf.initializers.random_normal(),
+                                                trainable=False))
+        with tf.variable_scope(name + '-' + str(scope_idx) + '-' + str(i)):
+            if use_noise:
+                if randomize_noise:
+                    noise = tf.random_normal(
+                        [tf.shape(x)[0], 1, x.shape[2], x.shape[3]],
+                        dtype=x.dtype)
+                else:
+                    noise = tf.cast(noise_inputs[-1], x.dtype)
+                noise_strength = tf.get_variable(
+                    'noise_strength-' + str(scope_idx) + '-' + str(i),
+                    shape=[], initializer=tf.initializers.zeros())
+                x += noise * tf.cast(noise_strength, x.dtype)
+    return x
+
+def build_res_conv_scaled_layer(x, name, n_layers, scope_idx, act, resample_kernel, fmaps=128, **kwargs):
+    # e.g. {'Conv-up': 2}, {'Conv-id': 1}
+    sample_type = name.split('-')[-1]
+    assert sample_type in ['up', 'down', 'id']
+    x_ori = x
+    for i in range(n_layers):
+        with tf.variable_scope(name + '-' + str(scope_idx) + '-' + str(i)):
+            x = apply_bias_act(conv2d_layer(x, fmaps=fmaps, kernel=3,
+                                            up=(sample_type == 'up'),
+                                            down=(sample_type == 'down'),
+                                            resample_kernel=resample_kernel), act=act)
+        if sample_type == 'up':
+            with tf.variable_scope('Upsampling' + '-' + str(scope_idx) + '-' + str(i)):
+                x_ori = naive_upsample_2d(x_ori)
+        elif sample_type == 'down':
+            with tf.variable_scope('Downsampling' + '-' + str(scope_idx) + '-' + str(i)):
+                x_ori = naive_downsample_2d(x_ori)
+
+    with tf.variable_scope(name + 'Resampled-' + str(scope_idx)):
+        x_ori = apply_bias_act(conv2d_layer(x_ori, fmaps=fmaps, kernel=1), act=act)
+        x = (x + x_ori) * (1 / np.sqrt(2))
     return x
