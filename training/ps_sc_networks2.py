@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 31 Jul 2021 01:33:15 AEST
+# --- Last Modified: Sat 31 Jul 2021 15:24:30 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -34,6 +34,7 @@ from training.modular_networks2 import build_noise_layer, build_conv_layer
 from training.modular_networks2 import build_res_conv_layer
 from training.modular_networks2 import build_C_spgroup_layers
 from training.modular_networks2 import build_C_spgroup_softmax_layers
+from training.ps_sc_networks3 import G_synthesis_modular_ps_sc_2
 
 #----------------------------------------------------------------------------
 # PS-SC main Generator
@@ -115,8 +116,7 @@ def G_mapping_ps_sc(
 
 def G_synthesis_modular_ps_sc(
         dlatents_in,  # Input: Disentangled latents (W) [minibatch, label_size+dlatent_size].
-        dlatent_size=7,  # Disentangled latent (W) dimensionality. Including discrete info, rotation, scaling, xy shearing, and xy translation.
-        label_size=0,  # Label dimensionality, 0 if no labels.
+        dlatent_size=7,  # Disentangled latent (W) dimensionality.
         num_channels=1,  # Number of output color channels.
         resolution=128,  # Output resolution.
         architecture='skip', # Architecture: 'orig', 'skip', 'resnet'.

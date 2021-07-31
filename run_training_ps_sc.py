@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 31 Jul 2021 01:13:12 AEST
+# --- Last Modified: Sat 31 Jul 2021 20:06:22 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -49,7 +49,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         key_ls, size_ls, count_dlatent_size = split_module_names(module_list)
 
     # Config I net
-    if model_type == 'info_gan' or model_type == 'ps_sc_gan': # InfoGAN or PS-SC
+    if model_type in ('info_gan', 'ps_sc_gan', 'ps_sc_2_gan'):
         I = EasyDict(func_name='training.ps_sc_networks2.head_ps_sc',
                      dlatent_size=count_dlatent_size, fmap_min=fmap_min, fmap_max=fmap_max)
     elif model_type == 'gan': # Just modular GAN.
@@ -58,8 +58,14 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         raise ValueError('Not supported model tyle: ' + model_type)
 
     # Config G and D net.
+    if model_type in ('info_gan', 'ps_sc_gan', 'gan'):
+        synthesis_func = 'G_synthesis_modular_ps_sc'
+    elif model_type == 'ps_sc_2_gan':
+        synthesis_func = 'G_synthesis_modular_ps_sc_2'
+    else:
+        raise ValueError('Not supported model tyle: ' + model_type)
     G = EasyDict(func_name='training.ps_sc_networks2.G_main_ps_sc',
-                 synthesis_func='G_synthesis_modular_ps_sc',
+                 synthesis_func=synthesis_func,
                  fmap_min=fmap_min, fmap_max=fmap_max, fmap_decay=fmap_decay,
                  latent_size=count_dlatent_size,
                  dlatent_size=count_dlatent_size,
@@ -81,7 +87,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns_info_gan',
                           C_lambda=C_lambda,
                           latent_type=latent_type, norm_ord=norm_ord)  # Options for generator loss.
-    elif model_type == 'ps_sc_gan': # PS-SC
+    elif model_type in ('ps_sc_gan', 'ps_sc_2_gan'): # PS-SC
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns_ps_sc',
                           C_lambda=C_lambda,
                           epsilon=epsilon_loss, random_eps=random_eps, latent_type=latent_type,
@@ -89,6 +95,8 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
     elif model_type == 'gan': # Just GANs
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns',
                           latent_type=latent_type)  # Options for generator loss.
+    else:
+        raise ValueError('Not supported model tyle: ' + model_type)
 
     sched = EasyDict()  # Options for TrainingSchedule.
     grid = EasyDict(size='1080p', layout='random')  # Options for setup_snapshot_image_grid().
@@ -123,8 +131,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
     kwargs = EasyDict(train)
     kwargs.update(G_args=G, D_args=D, I_args=I, G_opt_args=G_opt, D_opt_args=D_opt,
                   G_loss_args=G_loss, D_loss_args=D_loss,
-                  use_info_gan=(model_type == 'info_gan'), # Independent branch version
-                  use_ps_head=(model_type=='ps_sc_gan'),
+                  include_I=(model_type in ('ps_sc_gan', 'ps_sc_2_gan', 'info_gan')),
                   avg_mv_for_I=avg_mv_for_I,
                   traversal_grid=True, return_atts=return_atts)
 
@@ -189,7 +196,7 @@ def main():
     parser.add_argument('--metrics', help='Comma-separated list of metrics or "none" (default: %(default)s)',
                         default='None', type=_parse_comma_sep)
     parser.add_argument('--model_type', help='Type of model to train', default='ps_sc_gan',
-                        type=str, metavar='MODEL_TYPE', choices=['gan', 'ps_sc_gan', 'info_gan'])
+                        type=str, metavar='MODEL_TYPE', choices=['gan', 'ps_sc_gan', 'info_gan', 'ps_sc_2_gan'])
     parser.add_argument('--resume_pkl', help='Continue training using pretrained pkl.',
                         default=None, metavar='RESUME_PKL', type=str)
     parser.add_argument('--n_samples_per', help='Number of samples for each line in traversal (default: %(default)s)',

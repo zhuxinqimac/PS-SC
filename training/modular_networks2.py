@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 31 Jul 2021 01:58:50 AEST
+# --- Last Modified: Sat 31 Jul 2021 15:01:09 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -221,8 +221,8 @@ def build_res_conv_layer(x, name, n_layers, scope_idx, act, resample_kernel, fma
 # Additional layers.
 # ============================================
 
-def build_noise_only_layer(x, name, n_layers, scope_idx, act, use_noise, randomize_noise,
-                       noise_inputs=None, fmaps=128, **kwargs):
+def build_noise_only_layer(x, name, n_layers, scope_idx, use_noise, randomize_noise,
+                       noise_inputs=None, **kwargs):
     for i in range(n_layers):
         if noise_inputs is not None:
             noise_inputs.append(tf.get_variable('noise%d' % len(noise_inputs),

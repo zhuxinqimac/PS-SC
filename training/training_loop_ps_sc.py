@@ -8,7 +8,7 @@
 
 # --- File Name: training_loop_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 22:12:07 AEDT
+# --- Last Modified: Sat 31 Jul 2021 20:06:57 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -47,8 +47,7 @@ def training_loop_ps_sc(
         grid_args={},  # Options for train.setup_snapshot_image_grid().
         metric_arg_list=[],  # Options for MetricGroup.
         tf_config={},  # Options for tflib.init_tf().
-        use_info_gan=False,  # Whether to use info-gan.
-        use_ps_head=False,  # Whether to use ps-head.
+        include_I=False,
         data_dir=None,  # Directory to load datasets from.
         G_smoothing_kimg=10.0,  # Half-life of the running average of generator weights.
         minibatch_repeats=4,  # Number of minibatches to run before adjusting training parameters.
@@ -82,9 +81,6 @@ def training_loop_ps_sc(
     # Initialize dnnlib and TensorFlow.
     tflib.init_tf(tf_config)
     num_gpus = dnnlib.submit_config.num_gpus
-
-    # If include I
-    include_I = use_info_gan or use_ps_head
 
     # Load training set.
     training_set = dataset.load_dataset(data_dir=dnnlib.convert_path(data_dir),
