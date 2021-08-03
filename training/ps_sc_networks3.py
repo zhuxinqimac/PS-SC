@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Sat 31 Jul 2021 20:08:30 AEST
+# --- Last Modified: Tue 03 Aug 2021 17:41:14 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -56,6 +56,9 @@ def G_synthesis_modular_ps_sc_2(
     '''
     # print('Using ps_sc_2 generator.')
 
+    def nf(fmaps):
+        return np.clip(fmaps, fmap_min, fmap_max)
+
     act = nonlinearity
     images_out = None
 
@@ -83,32 +86,32 @@ def G_synthesis_modular_ps_sc_2(
         if k == 'Const':
             # e.g. {'Const': 512}
             x = build_Const_layers(init_dlatents_in=x, name=k, n_feats=size_ls[scope_idx],
-                                   scope_idx=scope_idx, fmaps=fmaps, **subkwargs)
+                                   scope_idx=scope_idx, fmaps=nf(fmaps), **subkwargs)
         elif k == 'C_global':
             # e.g. {'C_global': 2}
             x = build_C_global_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
-                                      scope_idx=scope_idx, fmaps=fmaps, **subkwargs)
+                                      scope_idx=scope_idx, fmaps=nf(fmaps), **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k.startswith('C_spgroup-'):
             # e.g. {'C_spgroup-2': 2}
             n_subs = int(k.split('-')[-1])
             if return_atts:
                 x, atts_tmp = build_C_spgroup_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
-                                                     scope_idx=scope_idx, fmaps=fmaps, return_atts=True, n_subs=n_subs, **subkwargs)
+                                                     scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=True, n_subs=n_subs, **subkwargs)
                 atts.append(atts_tmp)
             else:
                 x = build_C_spgroup_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
-                                           scope_idx=scope_idx, fmaps=fmaps, return_atts=False, n_subs=n_subs, **subkwargs)
+                                           scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False, n_subs=n_subs, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k == 'C_spgroup_sm':
             # e.g. {'C_spgroup_sm': 2}
             if return_atts:
                 x, atts_tmp = build_C_spgroup_softmax_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
-                                                             scope_idx=scope_idx, fmaps=fmaps, return_atts=True, **subkwargs)
+                                                             scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=True, **subkwargs)
                 atts.append(atts_tmp)
             else:
                 x = build_C_spgroup_softmax_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
-                                                   scope_idx=scope_idx, fmaps=fmaps, return_atts=False, **subkwargs)
+                                                   scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k == 'Noise':
             # e.g. {'Noise': 1}
@@ -118,15 +121,15 @@ def G_synthesis_modular_ps_sc_2(
         elif k in ('ResConv-id', 'ResConv-up', 'ResConv-down'):
             # e.g. {'ResConv-up': 2}, {'ResConv-id': 1}
             if k == 'ResConv-up':
-                fmaps = np.clip(int(fmaps / 2.0), fmap_min, fmap_max)
+                fmaps = int(fmaps / 2.0)
             elif k == 'ResConv-downw':
-                fmaps = np.clip(int(fmaps * 2.0), fmap_min, fmap_max)
+                fmaps = int(fmaps * 2.0)
             x = build_res_conv_scaled_layer(x, name=k, n_layers=size_ls[scope_idx], scope_idx=scope_idx,
-                                            fmaps=fmaps, **subkwargs)
+                                            fmaps=nf(fmaps), **subkwargs)
         elif k in ('Conv-id', 'Conv-up', 'Conv-down'):
             # e.g. {'Conv-up': 2}, {'Conv-id': 1}
             x = build_conv_layer(x, name=k, n_layers=size_ls[scope_idx], scope_idx=scope_idx,
-                                 fmaps=fmaps, **subkwargs)
+                                 fmaps=nf(fmaps), **subkwargs)
         else:
             raise ValueError('Unsupported module type: ' + k)
 
