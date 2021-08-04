@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Thu 05 Aug 2021 01:12:57 AEST
+# --- Last Modified: Thu 05 Aug 2021 01:40:57 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -22,7 +22,7 @@ from training.networks_stylegan2 import apply_bias_act, naive_upsample_2d
 from training.networks_stylegan2 import naive_downsample_2d, modulated_conv2d_layer
 from training.networks_stylegan import instance_norm, style_mod, dense
 
-LATENT_MODULES = ['C_global', 'C_spgroup', 'C_spgroup_sm', 'C_scmirror']
+LATENT_MODULES = ['C_global', 'C_spgroup', 'C_spgroup_sm', 'C_sc']
 
 #----------------------------------------------------------------------------
 # Split module list from string
