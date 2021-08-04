@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Tue 03 Aug 2021 17:41:14 AEST
+# --- Last Modified: Wed 04 Aug 2021 12:18:12 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -128,6 +128,10 @@ def G_synthesis_modular_ps_sc_2(
                                             fmaps=nf(fmaps), **subkwargs)
         elif k in ('Conv-id', 'Conv-up', 'Conv-down'):
             # e.g. {'Conv-up': 2}, {'Conv-id': 1}
+            if k == 'Conv-up':
+                fmaps = int(fmaps / 2.0)
+            elif k == 'Conv-downw':
+                fmaps = int(fmaps * 2.0)
             x = build_conv_layer(x, name=k, n_layers=size_ls[scope_idx], scope_idx=scope_idx,
                                  fmaps=nf(fmaps), **subkwargs)
         else:
