@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Wed 04 Aug 2021 23:40:33 AEST
+# --- Last Modified: Thu 05 Aug 2021 01:13:41 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -110,17 +110,18 @@ def G_synthesis_modular_ps_sc_2(
             n_subs = int(tokens[-1])
             pre_style_dense = ('prestyle' in tokens)
             mirrored_masks = ('mirror' in tokens)
+            channel_div = ('chdiv' in tokens)
             if return_atts:
                 x, atts_tmp = build_C_sc_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
                                                       scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=True,
                                                       n_subs=n_subs, mirrored_masks=mirrored_masks,
-                                                      pre_style_dense=pre_style_dense, **subkwargs)
+                                                      pre_style_dense=pre_style_dense, channel_div=channel_div, **subkwargs)
                 atts.append(atts_tmp)
             else:
                 x = build_C_sc_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
                                             scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False,
                                             n_subs=n_subs, mirrored_masks=mirrored_masks,
-                                            pre_style_dense=pre_style_dense, **subkwargs)
+                                            pre_style_dense=pre_style_dense, channel_div=channel_div, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k == 'C_spgroup_sm':
             # e.g. {'C_spgroup_sm': 2}
