@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Wed 04 Aug 2021 12:18:12 AEST
+# --- Last Modified: Wed 04 Aug 2021 23:28:10 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -26,6 +26,7 @@ from training.modular_networks2 import build_noise_only_layer, build_conv_layer
 from training.modular_networks2 import build_res_conv_scaled_layer
 from training.modular_networks2 import build_C_spgroup_layers
 from training.modular_networks2 import build_C_spgroup_softmax_layers
+from training.modular_networks2 import build_C_scmirror_layers
 
 #----------------------------------------------------------------------------
 def G_synthesis_modular_ps_sc_2(
@@ -102,6 +103,24 @@ def G_synthesis_modular_ps_sc_2(
             else:
                 x = build_C_spgroup_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
                                            scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False, n_subs=n_subs, **subkwargs)
+            start_idx += size_ls[scope_idx]
+        elif k.startswith('C_sc-'):
+            # e.g. {'C_sc-mirror-2': 2}
+            tokens = k.split('-')
+            n_subs = int(tokens[-1])
+            pre_style_dense = ('prestyle' in tokens)
+            mirrored_masks = ('mirror' in tokens)
+            if return_atts:
+                x, atts_tmp = build_C_scmirror_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
+                                                      scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=True,
+                                                      n_subs=n_subs, mirrored_masks=mirrored_masks,
+                                                      pre_style_dense=pre_style_dense, **subkwargs)
+                atts.append(atts_tmp)
+            else:
+                x = build_C_scmirror_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
+                                            scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False,
+                                            n_subs=n_subs, mirrored_masks=mirrored_masks,
+                                            pre_style_dense=pre_style_dense, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k == 'C_spgroup_sm':
             # e.g. {'C_spgroup_sm': 2}

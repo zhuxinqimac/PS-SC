@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 03 Aug 2021 17:25:09 AEST
+# --- Last Modified: Wed 04 Aug 2021 23:22:41 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -20,9 +20,9 @@ import tensorflow as tf
 from training.networks_stylegan2 import dense_layer, conv2d_layer
 from training.networks_stylegan2 import apply_bias_act, naive_upsample_2d
 from training.networks_stylegan2 import naive_downsample_2d, modulated_conv2d_layer
-from training.networks_stylegan import instance_norm, style_mod
+from training.networks_stylegan import instance_norm, style_mod, dense
 
-LATENT_MODULES = ['C_global', 'C_spgroup', 'C_spgroup_sm']
+LATENT_MODULES = ['C_global', 'C_spgroup', 'C_spgroup_sm', 'C_scmirror']
 
 #----------------------------------------------------------------------------
 # Split module list from string
@@ -266,3 +266,72 @@ def build_res_conv_scaled_layer(x, name, n_layers, scope_idx, act, resample_kern
         x_ori = apply_bias_act(conv2d_layer(x_ori, fmaps=fmaps, kernel=1), act=act)
         x = (x + x_ori) * (1 / np.sqrt(2))
     return x
+
+def get_att_filters(x, num, size, n_subs, n_latents):
+    edges = dense_layer(x, fmaps=n_latents * n_subs * num * size)
+    edges = tf.reshape(edges, [-1, n_latents, n_subs, num, size]) # [b, n_latents, n_subs, num, size]
+    edges_sm = tf.nn.softmax(edges, axis=-1)
+    edges_cs = tf.cumsum(edges_sm, axis=-1)
+    return tf.split(edges_cs, num, axis=3)
+
+def get_att_edges(s, e):
+    edge = s * (1 - e) # [b, n_latents, n_subs, 1, edge_size]
+    return edge[:,:,:,0]
+
+def get_att_rects(h, w):
+    return h[:, :, :, np.newaxis, :, np.newaxis] * w[:, :, :, np.newaxis, np.newaxis, :]
+    
+def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
+                            act, fused_modconv, fmaps=128, return_atts=False, resolution=128,
+                            n_subs=1, mirrored_masks=False, pre_style_dense=False, **kwargs):
+    '''
+    Build continuous latent layers with learned SC masks.
+    Support square images only.
+    '''
+    with tf.variable_scope(name + '-' + str(scope_idx)):
+        with tf.variable_scope('Att_spatial'):
+            x_mean = tf.reduce_mean(x, axis=[2, 3]) # [b, in_dim]
+            x_wh = x.shape[2]
+
+            # If using mirrored mask along W.
+            if mirrored_masks:
+                with tf.variable_scope('w_filter'):
+                    atts_half_w_s, atts_half_w_e = get_att_filters(x_mean, num=2, size=x_wh // 2, 
+                                                                   n_subs=n_subs, n_latents=n_latents)
+                atts_half_w = get_att_edges(atts_half_w_s, atts_half_w_e) # [b, n_latents, n_subs, w//2]
+                atts_w = tf.concat([atts_half_w, tf.reverse(atts_half_w, axis=[-1])], axis=-1) # [b, n_latents, n_subs, w]
+            else:
+                with tf.variable_scope('w_filter'):
+                    atts_w_s, atts_w_e = get_att_filters(x_mean, num=2, size=x_wh, 
+                                                         n_subs=n_subs, n_latents=n_latents)
+                atts_w = get_att_edges(atts_w_s, atts_w_e) # [b, n_latents, n_subs, w]
+
+            with tf.variable_scope('h_filter'):
+                atts_h_s, atts_h_e = get_att_filters(x_mean, num=2, size=x_wh, 
+                                                     n_subs=n_subs, n_latents=n_latents)
+            atts_h = get_att_edges(atts_h_s, atts_h_e) # [b, n_latents, n_subs, h]
+            atts_nsubs = get_att_rects(atts_h, atts_w) # [b, n_latents, nsubs, 1, h, w]
+            atts = tf.reduce_mean(atts_nsubs, axis=2) # [b, n_latents, 1, h, w]
+
+        with tf.variable_scope('Att_apply'):
+            C_global_latents = dlatents_in[:, start_idx:start_idx + n_latents]
+            x_norm = instance_norm(x)
+            for i in range(n_latents):
+                if pre_style_dense:
+                    with tf.variable_scope('pre_style_dense-' + str(i)):
+                        dlatents = apply_bias_act(dense(C_global_latents[:, i:i+1], fmaps=512, gain=1),
+                                                  act=act)
+                else:
+                    dlatents = C_global_latents[:, i:i+1]
+                with tf.variable_scope('style_mod-' + str(i)):
+                    x_styled = style_mod(x_norm, dlatents)
+                    x = x * (1 - atts[:, i]) + x_styled * atts[:, i]
+
+        if return_atts:
+            with tf.variable_scope('Reshape_output'):
+                atts = tf.reshape(atts, [-1, x_wh, x_wh, 1])
+                atts = tf.image.resize(atts, size=(resolution, resolution))
+                atts = tf.reshape(atts, [-1, n_latents, 1, resolution, resolution])
+            return x, atts
+        else:
+            return x
