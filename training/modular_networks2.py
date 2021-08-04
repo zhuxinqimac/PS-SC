@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Thu 05 Aug 2021 01:40:57 AEST
+# --- Last Modified: Thu 05 Aug 2021 01:49:13 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -332,7 +332,6 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
             C_global_latents = dlatents_in[:, start_idx:start_idx + n_latents]
             x_norm = instance_norm(x)
             if channel_div:
-                print('x.shape:', x.shape)
                 x_ch = x_norm.shape[1]
                 seg_ls = get_seg_ls(x_ch, n_latents)
                 ch_s = 0
@@ -343,10 +342,8 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                         x_styled_i = style_mod(x_norm[:, ch_s:ch_s+seg_ls[i]], dlatents)
                         x_i = x[:, ch_s:ch_s+seg_ls[i]] * (1 - atts[:, i]) + x_styled_i * atts[:, i]
                     ch_s += seg_ls[i]
-                    print(f'----x_{i}.shape:', x_i.shape)
                     x_new_ls.append(x_i)
                 x = tf.concat(x_new_ls, axis=1)
-                print('after style, x.shape:', x.shape)
             else:
                 for i in range(n_latents):
                     dlatents = get_dlatents_from_C(pre_style_dense, i, C_global_latents[:, i:i+1], 512, act)
