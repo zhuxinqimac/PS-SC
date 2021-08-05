@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Thu 05 Aug 2021 01:13:41 AEST
+# --- Last Modified: Thu 05 Aug 2021 13:29:11 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -133,11 +133,13 @@ def G_synthesis_modular_ps_sc_2(
                 x = build_C_spgroup_softmax_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
                                                    scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False, **subkwargs)
             start_idx += size_ls[scope_idx]
-        elif k == 'Noise':
+        elif k.startswith('Noise'):
             # e.g. {'Noise': 1}
             # print('out noise_inputs:', noise_inputs)
+            tokens = k.split('-')
+            add_biasact = ('biasact' in tokens)
             x = build_noise_only_layer(x, name=k, n_layers=size_ls[scope_idx], scope_idx=scope_idx,
-                                       noise_inputs=noise_inputs, **subkwargs)
+                                       noise_inputs=noise_inputs, add_biasact=add_biasact, **subkwargs)
         elif k in ('ResConv-id', 'ResConv-up', 'ResConv-down'):
             # e.g. {'ResConv-up': 2}, {'ResConv-id': 1}
             if k == 'ResConv-up':

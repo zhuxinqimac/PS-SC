@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Thu 05 Aug 2021 01:49:13 AEST
+# --- Last Modified: Thu 05 Aug 2021 13:18:34 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -214,7 +214,7 @@ def build_res_conv_layer(x, name, n_layers, scope_idx, act, resample_kernel, fma
 
     with tf.variable_scope(name + 'Resampled-' + str(scope_idx)):
         x_ori = apply_bias_act(conv2d_layer(x_ori, fmaps=fmaps, kernel=1), act=act)
-        x = x + x_ori
+    x = x + x_ori
     return x
 
 # ============================================
@@ -222,7 +222,7 @@ def build_res_conv_layer(x, name, n_layers, scope_idx, act, resample_kernel, fma
 # ============================================
 
 def build_noise_only_layer(x, name, n_layers, scope_idx, act, use_noise, randomize_noise,
-                           noise_inputs=None, **kwargs):
+                           noise_inputs=None, add_biasact=False, **kwargs):
     for i in range(n_layers):
         if noise_inputs is not None:
             noise_inputs.append(tf.get_variable('noise%d' % len(noise_inputs),
@@ -241,6 +241,7 @@ def build_noise_only_layer(x, name, n_layers, scope_idx, act, use_noise, randomi
                     'noise_strength-' + str(scope_idx) + '-' + str(i),
                     shape=[], initializer=tf.initializers.zeros())
                 x += noise * tf.cast(noise_strength, x.dtype)
+        if add_biasact:
             x = apply_bias_act(x, act=act)
     return x
 

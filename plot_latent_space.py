@@ -8,7 +8,7 @@
 
 # --- File Name: plot_latent_space.py
 # --- Creation Date: 05-10-2020
-# --- Last Modified: Sat 20 Mar 2021 17:36:30 AEDT
+# --- Last Modified: Thu 05 Aug 2021 15:34:06 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -254,7 +254,7 @@ def main():
         '--bound',
         type=float,
         help='interval [-bound, bound] for traversal',
-        default=2)
+        default=4)
     parser_generate_images_grids.add_argument(
         '--rot',
         type=float,
