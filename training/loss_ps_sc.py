@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 16 Mar 2021 22:11:33 AEDT
+# --- Last Modified: Sun 08 Aug 2021 00:20:24 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -42,12 +42,12 @@ def calc_ps_loss(latents, delta_latents, reg1_out, reg2_out, C_delta_latents, C_
     I_loss1 = tf.reduce_sum(tf.math.squared_difference(latents, reg1_out_hat), axis=1)
     I_loss2 = tf.reduce_sum(tf.math.squared_difference(delta_latents, reg2_out_hat), axis=1)
     I_loss = 0.5 * (I_loss1 + I_loss2)
-    I_loss = autosummary('Loss/I_loss', I_loss)
     I_loss *= C_lambda
     return I_loss
 
-def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, I_info=None, latent_type='uniform',
-                        C_lambda=1, epsilon=0.4, random_eps=False, use_cascade=False, cascade_dim=None):
+def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type='uniform',
+                        C_lambda=1, epsilon=0.4, random_eps=False, use_cascade=False, cascade_dim=None,
+                        sc_size_lambda=0):
     _ = opt
     C_global_size = G.input_shapes[0][1]
 
@@ -77,13 +77,15 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, I_info=None,
 
     labels = training_set.get_random_labels_tf(2*minibatch_size)
     latents_all = tf.concat([latents, delta_latents], axis=0)
-    fake_all_out = G.get_output_for(latents_all, labels, is_training=True, return_atts=False)
-    fake1_out, fake2_out = tf.split(fake_all_out, 2, axis=0)
-
-    if I_info is not None:
-        fake_scores_out, hidden = D.get_output_for(fake1_out, labels, is_training=True)
+    if sc_size_lambda > 0:
+        fake_all_out, atts = G.get_output_for(latents_all, labels, is_training=True, return_atts=True)
+        atts1, _ = tf.split(atts, 2, axis=0)
+        # atts1: [b, n_latents, 1, res, res]
     else:
-        fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)
+        fake_all_out = G.get_output_for(latents_all, labels, is_training=True, return_atts=False)
+    fake1_out, _ = tf.split(fake_all_out, 2, axis=0)
+
+    fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)
     G_loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
     
     regress_out = I.get_output_for(fake_all_out, is_training=True)
@@ -92,6 +94,11 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, I_info=None,
     I_loss = autosummary('Loss/I_loss', I_loss)
 
     G_loss += I_loss
+
+    if sc_size_lambda > 0:
+        SC_loss = sc_size_lambda * tf.reduce_mean(atts1, axis=[1, 2, 3, 4])
+        SC_loss = autosummary('Loss/SC_loss', SC_loss)
+        G_loss += SC_loss
 
     return G_loss, None
 
