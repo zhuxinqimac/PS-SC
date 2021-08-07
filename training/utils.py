@@ -8,7 +8,7 @@
 
 # --- File Name: utils.py
 # --- Creation Date: 14-08-2020
-# --- Last Modified: Sat 07 Aug 2021 16:57:01 AEST
+# --- Last Modified: Sat 07 Aug 2021 21:51:49 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -100,7 +100,7 @@ def get_grid_latents(n_discrete, n_continuous, n_samples_per, G, grid_labels, to
         z = np.random.uniform(low=-2., high=2., size=(1, n_continuous))
     elif latent_type == 'normal':
         # z = np.random.normal(size=(1, n_continuous))
-        trunc = get_truncated_normal(low=-0.5, upp=0.5)
+        trunc = get_truncated_normal(low=-0.7, upp=0.7)
         z = trunc.rvs(size=(1, n_continuous))
     else:
         raise ValueError('Latent type not supported: ' + latent_type)
