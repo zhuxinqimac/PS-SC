@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 07 Aug 2021 22:11:21 AEST
+# --- Last Modified: Sat 07 Aug 2021 22:16:08 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -298,8 +298,9 @@ def get_dlatents_from_C(pre_style_dense, i, code, fmaps, act):
     return dlatents
     
 def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
-                            act, fused_modconv, fmaps=128, return_atts=False, resolution=128,
-                            n_subs=1, mirrored_masks=False, pre_style_dense=False, channel_div=False, **kwargs):
+                      act, fused_modconv, fmaps=128, return_atts=False, resolution=128,
+                      n_subs=1, mirrored_masks=False, pre_style_dense=False, channel_div=False,
+                      att_type='mean', **kwargs):
     '''
     Build continuous latent layers with learned SC masks.
     Support square images only.
@@ -327,8 +328,12 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                                                      n_subs=n_subs, n_latents=n_latents)
             atts_h = get_att_edges(atts_h_s, atts_h_e) # [b, n_latents, n_subs, h]
             atts_nsubs = get_att_rects(atts_h, atts_w) # [b, n_latents, nsubs, 1, h, w]
-            atts = tf.clip_by_value(tf.reduce_sum(atts_nsubs, axis=2), 0., 1.) # [b, n_latents, 1, h, w]
-            # atts = tf.reduce_mean(atts_nsubs, axis=2) # [b, n_latents, 1, h, w]
+            if att_type == 'sumclip':
+                atts = tf.clip_by_value(tf.reduce_sum(atts_nsubs, axis=2), 0., 1.) # [b, n_latents, 1, h, w]
+            elif att_type == 'mean':
+                atts = tf.reduce_mean(atts_nsubs, axis=2) # [b, n_latents, 1, h, w]
+            else:
+                raise ValueError("Unsupported att square mask aggregation method:", att_type)
 
         with tf.variable_scope('Att_apply'):
             C_global_latents = dlatents_in[:, start_idx:start_idx + n_latents]

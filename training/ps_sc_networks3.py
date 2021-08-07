@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Thu 05 Aug 2021 13:29:11 AEST
+# --- Last Modified: Sat 07 Aug 2021 22:19:12 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -111,17 +111,24 @@ def G_synthesis_modular_ps_sc_2(
             pre_style_dense = ('prestyle' in tokens)
             mirrored_masks = ('mirror' in tokens)
             channel_div = ('chdiv' in tokens)
+            if 'sumclipAtt' in tokens:
+                att_type = 'sumclip'
+            else:
+                att_type = 'mean'
+
             if return_atts:
                 x, atts_tmp = build_C_sc_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
-                                                      scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=True,
-                                                      n_subs=n_subs, mirrored_masks=mirrored_masks,
-                                                      pre_style_dense=pre_style_dense, channel_div=channel_div, **subkwargs)
+                                                scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=True,
+                                                n_subs=n_subs, mirrored_masks=mirrored_masks,
+                                                pre_style_dense=pre_style_dense, channel_div=channel_div,
+                                                att_type=att_type, **subkwargs)
                 atts.append(atts_tmp)
             else:
                 x = build_C_sc_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
-                                            scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False,
-                                            n_subs=n_subs, mirrored_masks=mirrored_masks,
-                                            pre_style_dense=pre_style_dense, channel_div=channel_div, **subkwargs)
+                                      scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False,
+                                      n_subs=n_subs, mirrored_masks=mirrored_masks,
+                                      pre_style_dense=pre_style_dense, channel_div=channel_div,
+                                      att_type=att_type, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k == 'C_spgroup_sm':
             # e.g. {'C_spgroup_sm': 2}
