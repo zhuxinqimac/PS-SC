@@ -8,7 +8,7 @@
 
 # --- File Name: utils.py
 # --- Creation Date: 14-08-2020
-# --- Last Modified: Thu 21 Jan 2021 17:00:16 AEDT
+# --- Last Modified: Sat 07 Aug 2021 16:57:01 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -22,6 +22,7 @@ import dnnlib
 import dnnlib.tflib as tflib
 from dnnlib.tflib.autosummary import autosummary
 from training import misc
+from scipy.stats import truncnorm
 
 def get_return_v(x, topk=1):
     if (not isinstance(x, tuple)) and (not isinstance(x, list)):
@@ -69,13 +70,23 @@ def save_atts(atts, filename, grid_size, drange, grid_fakes, n_samples_per):
     return
 
 def add_outline(images, width=1):
-    num, img_w, img_h = images.shape[0], images.shape[-1], images.shape[-2]
-    for i in range(num):
-        images[i, :, 0:width, :] = 255
-        images[i, :, -width:, :] = 255
-        images[i, :, :, 0:width] = 255
-        images[i, :, :, -width:] = 255
+    if images.ndim == 4:
+        images[:, :, 0:width, :] = 255
+        images[:, :, -width:, :] = 255
+        images[:, :, :, 0:width] = 255
+        images[:, :, :, -width:] = 255
+    elif images.ndim == 3:
+        images[:, 0:width, :] = 255
+        images[:, -width:, :] = 255
+        images[:, :, 0:width] = 255
+        images[:, :, -width:] = 255
+    else:
+        raise ValueError('Unsupported dim of images:', images.shape)
     return images
+
+def get_truncated_normal(mean=0, sd=1, low=0, upp=10):
+    return truncnorm(
+        (low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
 
 def get_grid_latents(n_discrete, n_continuous, n_samples_per, G, grid_labels, topk_dims=None, latent_type='normal'):
     if n_discrete == 0:
@@ -83,11 +94,14 @@ def get_grid_latents(n_discrete, n_continuous, n_samples_per, G, grid_labels, to
         real_has_discrete = False
     else:
         real_has_discrete = True
+
     grid_size = (n_samples_per, n_continuous * n_discrete)
     if latent_type == 'uniform':
         z = np.random.uniform(low=-2., high=2., size=(1, n_continuous))
     elif latent_type == 'normal':
-        z = np.random.normal(size=(1, n_continuous))
+        # z = np.random.normal(size=(1, n_continuous))
+        trunc = get_truncated_normal(low=-0.5, upp=0.5)
+        z = trunc.rvs(size=(1, n_continuous))
     else:
         raise ValueError('Latent type not supported: ' + latent_type)
         # z = np.random.randn(1, n_continuous)  # [minibatch, component-3]
