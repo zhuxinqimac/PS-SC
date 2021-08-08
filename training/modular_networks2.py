@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sun 08 Aug 2021 20:32:47 AEST
+# --- Last Modified: Sun 08 Aug 2021 21:34:50 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -366,7 +366,7 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                 if recursive_style:
                     for i in range(n_latents):
                         dlatents = get_dlatents_from_C(pre_style_dense, i, C_global_latents[:, i:i+1], 512, act)
-                        with tf.variable_scope('style_mod-' + str(i)):
+                        with tf.variable_scope('style_mod_rec-' + str(i)):
                             x_norm = style_mod_recursive(x_norm, dlatents, atts[:, i])
                     x = x_norm
                 else:
