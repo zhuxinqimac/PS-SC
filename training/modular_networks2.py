@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sun 08 Aug 2021 16:11:55 AEST
+# --- Last Modified: Sun 08 Aug 2021 20:32:47 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -20,7 +20,7 @@ import tensorflow as tf
 from training.networks_stylegan2 import dense_layer, conv2d_layer
 from training.networks_stylegan2 import apply_bias_act, naive_upsample_2d
 from training.networks_stylegan2 import naive_downsample_2d, modulated_conv2d_layer
-from training.networks_stylegan import instance_norm, style_mod, dense
+from training.networks_stylegan import instance_norm, style_mod, dense, apply_bias
 
 LATENT_MODULES = ['C_global', 'C_spgroup', 'C_spgroup_sm', 'C_sc']
 
@@ -296,11 +296,18 @@ def get_dlatents_from_C(pre_style_dense, i, code, fmaps, act):
     else:
         dlatents = code
     return dlatents
-    
+
+def style_mod_recursive(x, dlatent, atts, **kwargs):
+    # atts: [b, 1, h, w]
+    with tf.variable_scope('StyleMod'):
+        style = apply_bias(dense(dlatent, fmaps=x.shape[1]*2, gain=1, **kwargs))
+        style = tf.reshape(style, [-1, 2, x.shape[1]] + [1] * (len(x.shape) - 2)) # [b, 2, feat, 1, 1]
+        return x * (style[:,0] * atts + 1) + style[:,1] * atts
+
 def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                       act, fused_modconv, fmaps=128, return_atts=False, resolution=128,
                       n_subs=1, mirrored_masks=False, pre_style_dense=False, channel_div=False,
-                      att_type='mean', **kwargs):
+                      att_type='mean', recursive_style=False, **kwargs):
     '''
     Build continuous latent layers with learned SC masks.
     Support square images only.
@@ -356,11 +363,18 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                     x_new_ls.append(x_i)
                 x = tf.concat(x_new_ls, axis=1)
             else:
-                for i in range(n_latents):
-                    dlatents = get_dlatents_from_C(pre_style_dense, i, C_global_latents[:, i:i+1], 512, act)
-                    with tf.variable_scope('style_mod-' + str(i)):
-                        x_styled = style_mod(x_norm, dlatents)
-                        x = x * (1 - atts[:, i]) + x_styled * atts[:, i]
+                if recursive_style:
+                    for i in range(n_latents):
+                        dlatents = get_dlatents_from_C(pre_style_dense, i, C_global_latents[:, i:i+1], 512, act)
+                        with tf.variable_scope('style_mod-' + str(i)):
+                            x_norm = style_mod_recursive(x_norm, dlatents, atts[:, i])
+                    x = x_norm
+                else:
+                    for i in range(n_latents):
+                        dlatents = get_dlatents_from_C(pre_style_dense, i, C_global_latents[:, i:i+1], 512, act)
+                        with tf.variable_scope('style_mod-' + str(i)):
+                            x_styled = style_mod(x_norm, dlatents)
+                            x = x * (1 - atts[:, i]) + x_styled * atts[:, i]
 
         if return_atts:
             with tf.variable_scope('Reshape_output'):
