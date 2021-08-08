@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Sat 07 Aug 2021 22:19:12 AEST
+# --- Last Modified: Sun 08 Aug 2021 16:12:27 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -113,6 +113,8 @@ def G_synthesis_modular_ps_sc_2(
             channel_div = ('chdiv' in tokens)
             if 'sumclipAtt' in tokens:
                 att_type = 'sumclip'
+            elif 'sumAtt' in tokens:
+                att_type = 'sum'
             else:
                 att_type = 'mean'
 

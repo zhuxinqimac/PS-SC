@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 07 Aug 2021 23:12:34 AEST
+# --- Last Modified: Sun 08 Aug 2021 16:11:55 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -331,6 +331,8 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
             if att_type == 'sumclip':
                 # print('using sumclip atts')
                 atts = tf.clip_by_value(tf.reduce_sum(atts_nsubs, axis=2), 0., 1.) # [b, n_latents, 1, h, w]
+            elif att_type == 'sum':
+                atts = tf.reduce_sum(atts_nsubs, axis=2) # [b, n_latents, 1, h, w]
             elif att_type == 'mean':
                 # print('using mean atts')
                 atts = tf.reduce_mean(atts_nsubs, axis=2) # [b, n_latents, 1, h, w]
