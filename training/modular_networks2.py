@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Wed 11 Aug 2021 02:09:45 AEST
+# --- Last Modified: Wed 11 Aug 2021 02:29:42 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -373,6 +373,7 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                 else:
                     for i in range(n_latents):
                         if renew_x_norm and i != 0:
+                            print('using renew_x_norm')
                             x_norm = instance_norm(x)
                         dlatents = get_dlatents_from_C(pre_style_dense, i, C_global_latents[:, i:i+1], 512, act)
                         with tf.variable_scope('style_mod-' + str(i)):
