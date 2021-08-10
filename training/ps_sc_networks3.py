@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks3.py
 # --- Creation Date: 31-07-2021
-# --- Last Modified: Sun 08 Aug 2021 20:34:22 AEST
+# --- Last Modified: Wed 11 Aug 2021 02:11:45 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -112,6 +112,7 @@ def G_synthesis_modular_ps_sc_2(
             mirrored_masks = ('mirror' in tokens)
             channel_div = ('chdiv' in tokens)
             recursive_style = ('recstyle' in tokens)
+            renew_x_norm = ('renewXnorm' in tokens)
             if 'sumclipAtt' in tokens:
                 att_type = 'sumclip'
             elif 'sumAtt' in tokens:
@@ -124,14 +125,16 @@ def G_synthesis_modular_ps_sc_2(
                                                 scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=True,
                                                 n_subs=n_subs, mirrored_masks=mirrored_masks,
                                                 pre_style_dense=pre_style_dense, channel_div=channel_div,
-                                                att_type=att_type, recursive_style=recursive_style, **subkwargs)
+                                                att_type=att_type, recursive_style=recursive_style,
+                                                renew_x_norm=renew_x_norm, **subkwargs)
                 atts.append(atts_tmp)
             else:
                 x = build_C_sc_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
                                       scope_idx=scope_idx, fmaps=nf(fmaps), return_atts=False,
                                       n_subs=n_subs, mirrored_masks=mirrored_masks,
                                       pre_style_dense=pre_style_dense, channel_div=channel_div,
-                                      att_type=att_type, recursive_style=recursive_style, **subkwargs)
+                                      att_type=att_type, recursive_style=recursive_style,
+                                      renew_x_norm=renew_x_norm, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k == 'C_spgroup_sm':
             # e.g. {'C_spgroup_sm': 2}

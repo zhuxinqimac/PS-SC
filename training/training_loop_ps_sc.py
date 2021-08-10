@@ -8,7 +8,7 @@
 
 # --- File Name: training_loop_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 31 Jul 2021 20:06:57 AEST
+# --- Last Modified: Mon 09 Aug 2021 21:59:57 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -163,7 +163,7 @@ def training_loop_ps_sc(
             n_discrete, n_continuous, n_samples_per, G, grid_labels, topk_dims)
     else:
         grid_latents = np.random.randn(np.prod(grid_size), *G.input_shape[1:])
-    print('grid_size:', grid_size)
+    print('grid_size:', grid_size) # [n_samples_per, nlat]
     print('grid_latents.shape:', grid_latents.shape)
     print('grid_labels.shape:', grid_labels.shape)
     if return_atts:

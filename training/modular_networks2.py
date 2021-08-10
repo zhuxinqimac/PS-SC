@@ -8,7 +8,7 @@
 
 # --- File Name: modular_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sun 08 Aug 2021 21:39:21 AEST
+# --- Last Modified: Wed 11 Aug 2021 02:09:45 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -95,8 +95,8 @@ def build_C_spgroup_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in
             att_w_cs_ends = tf.reshape(att_w_cs_ends, [-1, n_latents, n_subs, 1, 1, x_wh])
             att_w = att_w_cs_starts * att_w_cs_ends # [b, n_latents, n_subs, 1, 1, x_wh]
             atts = att_h * att_w # [b, n_latents, n_subs, 1, x_wh, x_wh]
-            atts = tf.reduce_mean(atts, axis=2) # [b, n_latents, 1, x_wh, x_wh]
-            # atts = tf.reduce_sum(atts, axis=2) # [b, n_latents, 1, x_wh, x_wh]
+            # atts = tf.reduce_mean(atts, axis=2) # [b, n_latents, 1, x_wh, x_wh]
+            atts = tf.reduce_sum(atts, axis=2) # [b, n_latents, 1, x_wh, x_wh]
 
         with tf.variable_scope('Att_apply'):
             C_global_latents = dlatents_in[:, start_idx:start_idx + n_latents]
@@ -307,7 +307,7 @@ def style_mod_recursive(x, dlatent, atts, **kwargs):
 def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                       act, fused_modconv, fmaps=128, return_atts=False, resolution=128,
                       n_subs=1, mirrored_masks=False, pre_style_dense=False, channel_div=False,
-                      att_type='mean', recursive_style=False, **kwargs):
+                      att_type='mean', recursive_style=False, renew_x_norm=False, **kwargs):
     '''
     Build continuous latent layers with learned SC masks.
     Support square images only.
@@ -372,6 +372,8 @@ def build_C_sc_layers(x, name, n_latents, start_idx, scope_idx, dlatents_in,
                     x = x_norm
                 else:
                     for i in range(n_latents):
+                        if renew_x_norm and i != 0:
+                            x_norm = instance_norm(x)
                         dlatents = get_dlatents_from_C(pre_style_dense, i, C_global_latents[:, i:i+1], 512, act)
                         with tf.variable_scope('style_mod-' + str(i)):
                             x_styled = style_mod(x_norm, dlatents)
