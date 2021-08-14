@@ -8,7 +8,7 @@
 
 # --- File Name: training_loop_nav.py
 # --- Creation Date: 09-08-2021
-# --- Last Modified: Sat 14 Aug 2021 04:18:27 AEST
+# --- Last Modified: Sat 14 Aug 2021 17:13:36 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -58,13 +58,14 @@ def training_schedule(
     s.tick_kimg = tick_kimg_base
     return s
 
-def get_walk(w_origin, Ns, n_samples_per, step_size=0.2):
+def get_walk(w_origin, Ns, n_samples_per):
     '''
     w_origin: [1, num_ws, w_dim]
     return: [n_lat * n_samples_per, num_ws, w_dim]
     '''
     dirs = Ns.run(w_origin.mean(1)) # [n_lat, num_ws, w_dim]
     n_lat, num_ws, w_dim = dirs.shape
+    step_size = 4. / n_samples_per
     w_origin = np.tile(w_origin, [n_lat, 1, 1])
     steps = []
     step = w_origin.copy()
