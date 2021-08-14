@@ -8,7 +8,7 @@
 
 # --- File Name: training.nav_networks.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Sat 14 Aug 2021 15:29:25 AEST
+# --- Last Modified: Sat 14 Aug 2021 18:01:43 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -42,6 +42,14 @@ def navigator(w, nav_type='linear', n_lat=20, num_ws=18, w_dim=512,
             layer_softmax = tf.nn.softmax(layer_att, axis=-1)
             per_layer_dir = tf.get_variable('per_layer_dir', shape=[n_lat, w_dim], initializer=init)
             dirs = layer_softmax[:, :, np.newaxis] * per_layer_dir[:, np.newaxis, ...]
+        elif nav_type == 'layersoftelasticunit':
+            init = tf.initializers.random_normal(0, 1)
+            layer_att = tf.get_variable('layer_att', shape=[n_lat, num_ws], initializer=init)
+            layer_softmax = tf.nn.softmax(layer_att, axis=-1)
+            per_layer_dir = tf.get_variable('per_layer_dir', shape=[n_lat, w_dim], initializer=init)
+            per_layer_dir_unit, _ = tf.linalg.normalize(per_layer_dir, axis=-1)
+            len_dir = tf.get_variable('len_dir', shape=[n_lat], initializer=init)**2
+            dirs = layer_softmax[:, :, np.newaxis] * per_layer_dir_unit[:, np.newaxis, ...] * len_dir[:, np.newaxis, np.newaxis]
         else:
             raise ValueError('Unknown nav_type:', nav_type)
     dirs = tf.reshape(dirs, [n_lat, num_ws, w_dim])

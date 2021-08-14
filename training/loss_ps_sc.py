@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sun 08 Aug 2021 00:20:24 AEST
+# --- Last Modified: Sat 14 Aug 2021 23:17:16 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -45,9 +45,24 @@ def calc_ps_loss(latents, delta_latents, reg1_out, reg2_out, C_delta_latents, C_
     I_loss *= C_lambda
     return I_loss
 
+def calc_minfeats_loss(feats, minfeats_lambda):
+    '''
+    feats is a list of tensors of shapes:
+    [2b, c, h, w] or [2b, c]
+    '''
+    loss = 0
+    for feat in feats:
+        feat_1, feat_2 = tf.split(feat, 2, axis=0)
+        if len(feat_1.shape) > 2:
+            feat_1 = tf.reduce_mean(feat_1, axis=[2,3]) # [b, nfeat]
+            feat_2 = tf.reduce_mean(feat_2, axis=[2,3]) # [b, nfeat]
+        loss_tmp = tf.reduce_mean(tf.math.squared_difference(feat_1, feat_2), axis=1)
+        loss += loss_tmp
+    return minfeats_lambda * loss
+
 def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type='uniform',
                         C_lambda=1, epsilon=0.4, random_eps=False, use_cascade=False, cascade_dim=None,
-                        sc_size_lambda=0):
+                        sc_size_lambda=0, minfeats_lambda=0):
     _ = opt
     C_global_size = G.input_shapes[0][1]
 
@@ -88,12 +103,19 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
     fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)
     G_loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
     
-    regress_out = I.get_output_for(fake_all_out, is_training=True)
+    outs = I.get_output_for(fake_all_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
+    regress_out = outs[0]
+    feats = outs[1:]
     reg1_out, reg2_out = tf.split(regress_out, 2, axis=0)
     I_loss = calc_ps_loss(latents, delta_latents, reg1_out, reg2_out, C_delta_latents, C_lambda)
     I_loss = autosummary('Loss/I_loss', I_loss)
 
     G_loss += I_loss
+
+    if minfeats_lambda > 0:
+        F_loss = calc_minfeats_loss(feats, minfeats_lambda)
+        F_loss = autosummary('Loss/F_loss', F_loss)
+        G_loss += F_loss
 
     if sc_size_lambda > 0:
         SC_loss = sc_size_lambda * tf.reduce_mean(atts1, axis=[1, 2, 3, 4])

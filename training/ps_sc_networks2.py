@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 31 Jul 2021 15:24:30 AEST
+# --- Last Modified: Sat 14 Aug 2021 22:44:09 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -247,6 +247,7 @@ def head_ps_sc(
         resample_kernel=[
             1, 3, 3, 1
         ],  # Low-pass filter to apply when resampling activations. None = no filtering.
+        return_feats=False, # If return features.
         **_kwargs):  # Ignore unrecognized keyword args.
 
     resolution_log2 = int(np.log2(resolution))
@@ -298,11 +299,13 @@ def head_ps_sc(
     # Main layers.
     x = None
     y = images_in
+    feats_ls = []
     for res in range(resolution_log2, 2, -1):
         with tf.variable_scope('%dx%d' % (2**res, 2**res)):
             if architecture == 'skip' or res == resolution_log2:
                 x = fromrgb(x, y, res)
             x = block(x, res)
+            feats_ls.append(x)
             if architecture == 'skip':
                 y = downsample(y)
 
@@ -316,14 +319,18 @@ def head_ps_sc(
                                            mbstd_num_features)
         with tf.variable_scope('Conv'):
             x = apply_bias_act(conv2d_layer(x, fmaps=nf(1), kernel=3), act=act)
+            feats_ls.append(x)
         with tf.variable_scope('Dense0'):
             x = apply_bias_act(dense_layer(x, fmaps=nf(0)), act=act)
+            feats_ls.append(x)
 
-    # Output layer with label conditioning from "Which Training Methods for GANs do actually Converge?"
     with tf.variable_scope('Output'):
         with tf.variable_scope('Dense_VC'):
             x = apply_bias_act(dense_layer(x, fmaps=dlatent_size))
 
     # Output.
     assert x.dtype == tf.as_dtype(dtype)
-    return x
+    if return_feats:
+        return (x, *feats_ls)
+    else:
+        return x
