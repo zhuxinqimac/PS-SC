@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_navigate.py
 # --- Creation Date: 09-08-2021
-# --- Last Modified: Tue 10 Aug 2021 21:32:32 AEST
+# --- Last Modified: Sat 14 Aug 2021 02:49:48 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -51,12 +51,12 @@ def run(result_dir, num_gpus, total_kimg,
         I_resume_with_new_nets=False,
         I_fmap_base=8, C_lambda=1,
         I_fmap_min=16, I_fmap_max=512, G_nf_scale=4,
-        n_samples_per=10, model_type='linear_N-static_I-ce_loss',
+        n_samples_per=10, model_type='linear_N-static_I-l2_loss',
         epsilon_loss=3, random_eps=False,
         batch_size=32, batch_per_gpu=16,
         random_seed=1000, dims_to_learn='[0,1,2,3]', total_lat_in_I=20,
         learning_rate=0.002, avg_mv_for_N=False, avg_mv_for_I=False,
-        use_cascade=False, cascade_alt_freq_k=1,
+        use_cascade=False, cascade_alt_freq_k=1, reg_lambda=1,
         network_snapshot_ticks=10):
     train = EasyDict(run_func_name='training.training_loop_nav.training_loop_nav')  # Options for training loop.
     dims_to_learn_ls = get_dim_list(dims_to_learn, total_lat_in_I)
@@ -77,8 +77,8 @@ def run(result_dir, num_gpus, total_kimg,
 
     # Config losses
     if loss_configs.type == 'l2':
-        loss = EasyDict(func_name='training.loss_nav.nav_l2', C_lambda=C_lambda,
-                        epsilon=epsilon_loss, random_eps=random_eps, dims_to_learn_ls=dims_to_learn_ls)
+        loss = EasyDict(func_name='training.loss_nav.nav_l2', C_lambda=C_lambda, if_train_I=I_configs.if_train,
+                        epsilon=epsilon_loss, random_eps=random_eps, dims_to_learn_ls=dims_to_learn_ls, reg_lambda=reg_lambda)
     else:
         raise ValueError('Not supported loss tyle: ' + loss_configs['type'])
 
@@ -107,7 +107,8 @@ def run(result_dir, num_gpus, total_kimg,
     kwargs.update(N_args=N, I_args=I, net_opt_args=net_opt, loss_args=loss,
                   avg_mv_for_I=avg_mv_for_I, avg_mv_for_N=avg_mv_for_N)
 
-    kwargs.update(sched_args=sched, grid_args=grid, metric_arg_list=metrics,
+    kwargs.update(sched_args=sched, grid_args=grid,
+                  # metric_arg_list=metrics,
                   dims_to_learn_ls=dims_to_learn_ls,
                   tf_config=tf_config, resume_pkl=resume_pkl, G_pkl=G_pkl,
                   total_lat_in_I=total_lat_in_I, n_samples_per=n_samples_per,
@@ -157,17 +158,14 @@ def main():
                         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--result-dir', help='Root directory for run results (default: %(default)s)',
                         default='results', metavar='DIR')
-    parser.add_argument('--data-dir', help='Dataset root directory', required=True)
     parser.add_argument('--num-gpus', help='Number of GPUs (default: %(default)s)',
                         default=1, type=int, metavar='N')
     parser.add_argument('--total-kimg', help='Training length in thousands of images (default: %(default)s)',
                         metavar='KIMG', default=25000, type=int)
-    parser.add_argument('--mirror-augment', help='Mirror augment (default: %(default)s)',
-                        default=False, metavar='BOOL', type=_str_to_bool)
     parser.add_argument('--metrics', help='Comma-separated list of metrics or "none" (default: %(default)s)',
                         default='None', type=_parse_comma_sep)
     parser.add_argument('--model_type', help='Type of model to train', default='ps_sc_gan',
-                        type=str, metavar='MODEL_TYPE', choices=['gan', 'ps_sc_gan', 'info_gan', 'ps_sc_2_gan'])
+                        type=str, metavar='MODEL_TYPE')
     parser.add_argument('--resume_pkl', help='Continue training using pretrained pkl.',
                         default=None, metavar='RESUME_PKL', type=str)
     parser.add_argument('--G_pkl', help='Pretrained generator pkl.',
@@ -182,8 +180,10 @@ def main():
                         metavar='N_BATCH', default=32, type=int)
     parser.add_argument('--batch_per_gpu', help='N batch per gpu.',
                         metavar='N_BATCH_PER_GPU', default=16, type=int)
-    parser.add_argument('--C_lambda', help='Continuous lambda for INFO-GAN and PS-SC-GAN.',
+    parser.add_argument('--C_lambda', help='Continuous lambda for dir discovery.',
                         metavar='C_LAMBDA', default=1, type=float)
+    parser.add_argument('--reg_lambda', help='Lambda for dir vector length regularization.',
+                        metavar='REG_LAMBDA', default=1, type=float)
     parser.add_argument('--epsilon_loss', help='Continuous lambda for INFO-GAN and PS-SC-GAN.',
                         metavar='EPSILON_LOSS', default=0.4, type=float)
     parser.add_argument('--random_eps', help='If use random epsilon in ps loss.',

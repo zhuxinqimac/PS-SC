@@ -422,7 +422,7 @@ class Network:
                             out_gpu = out_kwargs.pop("func")(*out_gpu, **out_kwargs)
                             out_gpu = [out_gpu] if tfutil.is_tf_expression(out_gpu) else list(out_gpu)
 
-                        assert len(out_gpu) == self.num_outputs
+                        # assert len(out_gpu) == self.num_outputs
                         out_split.append(out_gpu)
 
                 with tf.device("/cpu:0"):
@@ -431,19 +431,26 @@ class Network:
 
         # Run minibatches.
         in_expr, out_expr = self._run_cache[key]
-        out_arrays = [np.empty([num_items] + expr.shape.as_list()[1:], expr.dtype.name) for expr in out_expr]
-
-        for mb_begin in range(0, num_items, minibatch_size):
-            if print_progress:
-                print("\r%d / %d" % (mb_begin, num_items), end="")
-
-            mb_end = min(mb_begin + minibatch_size, num_items)
-            mb_num = mb_end - mb_begin
-            mb_in = [src[mb_begin : mb_end] if src is not None else np.zeros([mb_num] + shape[1:]) for src, shape in zip(in_arrays, self.input_shapes)]
+        if out_expr[0].shape.as_list()[0] is not None:
+            out_arrays = [np.empty(expr.shape.as_list(), expr.dtype.name) for expr in out_expr]
+            mb_in = [src if src is not None else np.zeros([num_items] + shape[1:]) for src, shape in zip(in_arrays, self.input_shapes)]
             mb_out = tf.get_default_session().run(out_expr, dict(zip(in_expr, mb_in)))
-
             for dst, src in zip(out_arrays, mb_out):
-                dst[mb_begin: mb_end] = src
+                dst[:] = src
+        else:
+            out_arrays = [np.empty([num_items] + expr.shape.as_list()[1:], expr.dtype.name) for expr in out_expr]
+
+            for mb_begin in range(0, num_items, minibatch_size):
+                if print_progress:
+                    print("\r%d / %d" % (mb_begin, num_items), end="")
+
+                mb_end = min(mb_begin + minibatch_size, num_items)
+                mb_num = mb_end - mb_begin
+                mb_in = [src[mb_begin : mb_end] if src is not None else np.zeros([mb_num] + shape[1:]) for src, shape in zip(in_arrays, self.input_shapes)]
+                mb_out = tf.get_default_session().run(out_expr, dict(zip(in_expr, mb_in)))
+
+                for dst, src in zip(out_arrays, mb_out):
+                    dst[mb_begin: mb_end] = src
 
         # Done.
         if print_progress:
