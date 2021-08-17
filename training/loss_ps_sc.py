@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 17 Aug 2021 22:27:21 AEST
+# --- Last Modified: Wed 18 Aug 2021 02:48:56 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -101,8 +101,8 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
     fake1_out, _ = tf.split(fake_all_out, 2, axis=0)
 
     if minDfeats_lambda > 0:
-        outs_D = D.get_output_for(fake_all_out, labels, is_training=True, return_as_list=True)
-        fake_scores_out = tf.split(outs_D[0], 2, axis=0)
+        outs_D = D.get_output_for(fake_all_out, labels, is_training=True, return_feats=True, return_as_list=True)
+        fake_scores_out, _ = tf.split(outs_D[0], 2, axis=0)
         feats_D = outs_D[1:]
     else:
         fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)

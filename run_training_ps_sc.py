@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Tue 17 Aug 2021 22:15:34 AEST
+# --- Last Modified: Wed 18 Aug 2021 02:45:57 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -95,6 +95,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
                           epsilon=epsilon_loss, random_eps=random_eps, latent_type=latent_type,
                           sc_size_lambda=sc_size_lambda,
                           minfeats_lambda=minfeats_lambda,
+                          minDfeats_lambda=minDfeats_lambda,
                           use_cascade=use_cascade)  # Options for generator loss.
     elif model_type == 'gan': # Just GANs
         G_loss = EasyDict(func_name='training.loss_ps_sc.G_logistic_ns',
