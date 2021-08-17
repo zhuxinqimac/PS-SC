@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 14 Aug 2021 23:05:32 AEST
+# --- Last Modified: Tue 17 Aug 2021 22:15:34 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -41,7 +41,7 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
         fmap_min=16, fmap_max=512, G_nf_scale=4,
         norm_ord=2, topk_dims_to_show=20,
         learning_rate=0.002, avg_mv_for_I=False, use_cascade=False, cascade_alt_freq_k=1,
-        sc_size_lambda=0, minfeats_lambda=0, network_snapshot_ticks=10):
+        sc_size_lambda=0, minfeats_lambda=0, minDfeats_lambda=0, network_snapshot_ticks=10):
     train = EasyDict(run_func_name='training.training_loop_ps_sc.training_loop_ps_sc')  # Options for training loop.
 
     if not(module_list is None):
@@ -72,8 +72,10 @@ def run(dataset, data_dir, result_dir, num_gpus, total_kimg, gamma,
                  key_ls=key_ls, size_ls=size_ls,
                  module_list=module_list, use_noise=True, return_atts=return_atts,
                  G_nf_scale=G_nf_scale)  # Options for generator network.
-    D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
-                 fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
+    # D = EasyDict(func_name='training.networks_stylegan2.D_stylegan2',
+                 # fmap_min=fmap_min, fmap_max=fmap_max)  # Options for discriminator network.
+    D = EasyDict(func_name='training.ps_sc_networks3.D_stylegan2_returnF',
+                 fmap_min=fmap_min, fmap_max=fmap_max, minDfeats_lambda=minDfeats_lambda)  # Options for discriminator network.
 
     desc = model_type
 
@@ -251,6 +253,8 @@ def main():
                         metavar='SC_SIZE_LAMBDA', default=0, type=float)
     parser.add_argument('--minfeats_lambda', help='The loss lambda for minimizing feat difference along axes.',
                         metavar='MINFEATS_LAMBDA', default=0, type=float)
+    parser.add_argument('--minDfeats_lambda', help='The loss lambda for minimizing discriminator feat difference along axes.',
+                        metavar='MINDFEATS_LAMBDA', default=0, type=float)
     parser.add_argument('--network_snapshot_ticks', help='Snapshot ticks.',
                         metavar='NETWORK_SNAPSHOT_TICKS', default=10, type=int)
 

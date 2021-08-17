@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 14 Aug 2021 23:17:16 AEST
+# --- Last Modified: Tue 17 Aug 2021 22:27:21 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -62,7 +62,7 @@ def calc_minfeats_loss(feats, minfeats_lambda):
 
 def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type='uniform',
                         C_lambda=1, epsilon=0.4, random_eps=False, use_cascade=False, cascade_dim=None,
-                        sc_size_lambda=0, minfeats_lambda=0):
+                        sc_size_lambda=0, minfeats_lambda=0, minDfeats_lambda=0):
     _ = opt
     C_global_size = G.input_shapes[0][1]
 
@@ -100,7 +100,12 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
         fake_all_out = G.get_output_for(latents_all, labels, is_training=True, return_atts=False)
     fake1_out, _ = tf.split(fake_all_out, 2, axis=0)
 
-    fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)
+    if minDfeats_lambda > 0:
+        outs_D = D.get_output_for(fake_all_out, labels, is_training=True, return_as_list=True)
+        fake_scores_out = tf.split(outs_D[0], 2, axis=0)
+        feats_D = outs_D[1:]
+    else:
+        fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)
     G_loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
     
     outs = I.get_output_for(fake_all_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
@@ -116,6 +121,11 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
         F_loss = calc_minfeats_loss(feats, minfeats_lambda)
         F_loss = autosummary('Loss/F_loss', F_loss)
         G_loss += F_loss
+
+    if minDfeats_lambda > 0:
+        FD_loss = calc_minfeats_loss(feats_D, minDfeats_lambda)
+        FD_loss = autosummary('Loss/FD_loss', FD_loss)
+        G_loss += FD_loss
 
     if sc_size_lambda > 0:
         SC_loss = sc_size_lambda * tf.reduce_mean(atts1, axis=[1, 2, 3, 4])
