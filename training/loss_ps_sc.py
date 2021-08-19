@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Thu 19 Aug 2021 15:37:25 AEST
+# --- Last Modified: Thu 19 Aug 2021 15:48:27 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -53,6 +53,22 @@ def calc_minfeats_loss(feats, minfeats_lambda):
     loss = 0
     for feat in feats:
         feat_1, feat_2 = tf.split(feat, 2, axis=0)
+        if len(feat_1.shape) > 2:
+            feat_1 = tf.reduce_mean(feat_1, axis=[2,3]) # [b, nfeat]
+            feat_2 = tf.reduce_mean(feat_2, axis=[2,3]) # [b, nfeat]
+        loss_tmp = tf.reduce_mean(tf.math.squared_difference(feat_1, feat_2), axis=1)
+        loss += loss_tmp
+    return minfeats_lambda * loss
+
+def calc_minfeats_loss_sep(feats1, feats2, minfeats_lambda):
+    '''
+    feats1, feats2 are lists of tensors of shapes:
+    [b, c, h, w] or [b, c]
+    '''
+    loss = 0
+    for i in range(feats1):
+        feat_1 = feats1[i]
+        feat_2 = feats2[i]
         if len(feat_1.shape) > 2:
             feat_1 = tf.reduce_mean(feat_1, axis=[2,3]) # [b, nfeat]
             feat_2 = tf.reduce_mean(feat_2, axis=[2,3]) # [b, nfeat]
@@ -117,7 +133,6 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
         outs1_D = D.get_output_for(fake1_out, labels, is_training=True, return_feats=True, return_as_list=True)
         outs2_D = D.get_output_for(fake2_out, labels, is_training=True, return_feats=True, return_as_list=True)
         fake_scores_out = outs1_D[0]
-        feats_D = tf.concat([outs1_D[1:], outs2_D[1:]], axis=0)
     else:
         fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)
     G_loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
@@ -130,7 +145,6 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
     # single b
     reg1_outs = I.get_output_for(fake1_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
     reg2_outs = I.get_output_for(fake2_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
-    feats = tf.concat([reg1_outs[1:], reg2_outs[1:]], axis=0)
     reg1_out, reg2_out = reg1_outs[0], reg2_outs[0]
 
     I_loss = calc_ps_loss(latents, delta_latents, reg1_out, reg2_out, C_delta_latents, C_lambda)
@@ -139,12 +153,14 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
     G_loss += I_loss
 
     if minfeats_lambda > 0:
-        F_loss = calc_minfeats_loss(feats, minfeats_lambda)
+        # F_loss = calc_minfeats_loss(feats, minfeats_lambda)
+        F_loss = calc_minfeats_loss_sep(reg1_outs[1:], reg2_outs[1:], minfeats_lambda)
         F_loss = autosummary('Loss/F_loss', F_loss)
         G_loss += F_loss
 
     if minDfeats_lambda > 0:
-        FD_loss = calc_minfeats_loss(feats_D, minDfeats_lambda)
+        # FD_loss = calc_minfeats_loss(feats_D, minDfeats_lambda)
+        FD_loss = calc_minfeats_loss_sep(outs1_D[1:], outs2_D[1:], minDfeats_lambda)
         FD_loss = autosummary('Loss/FD_loss', FD_loss)
         G_loss += FD_loss
 
