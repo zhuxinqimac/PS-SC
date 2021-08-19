@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Thu 19 Aug 2021 15:51:22 AEST
+# --- Last Modified: Thu 19 Aug 2021 15:53:40 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -66,7 +66,7 @@ def calc_minfeats_loss_sep(feats1, feats2, minfeats_lambda):
     [b, c, h, w] or [b, c]
     '''
     loss = 0
-    for i, feat_1 in feats1:
+    for i, feat_1 in enumerate(feats1):
         feat_2 = feats2[i]
         if len(feat_1.shape) > 2:
             feat_1 = tf.reduce_mean(feat_1, axis=[2,3]) # [b, nfeat]
