@@ -8,7 +8,7 @@
 
 # --- File Name: training.nav_networks.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Fri 20 Aug 2021 02:17:31 AEST
+# --- Last Modified: Fri 20 Aug 2021 02:27:46 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -28,7 +28,6 @@ def get_n_att(nav_type, num_ws):
     if len(token_ls) >= 2:
         n_att_ws = int(token_ls[1])
         assert n_att_ws <= num_ws
-        print('using n_att_ws')
     else:
         n_att_ws = num_ws
     return n_att_ws
