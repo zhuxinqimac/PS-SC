@@ -8,7 +8,7 @@
 
 # --- File Name: loss_ps_sc.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Wed 18 Aug 2021 02:48:56 AEST
+# --- Last Modified: Thu 19 Aug 2021 15:37:25 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -91,27 +91,48 @@ def G_logistic_ns_ps_sc(G, D, I, opt, training_set, minibatch_size, latent_type=
     delta_latents = delta_target + latents
 
     labels = training_set.get_random_labels_tf(2*minibatch_size)
-    latents_all = tf.concat([latents, delta_latents], axis=0)
+    # latents_all = tf.concat([latents, delta_latents], axis=0)
     if sc_size_lambda > 0:
-        fake_all_out, atts = G.get_output_for(latents_all, labels, is_training=True, return_atts=True)
-        atts1, _ = tf.split(atts, 2, axis=0)
+        # twice b
+        # fake_all_out, atts = G.get_output_for(latents_all, labels, is_training=True, return_atts=True)
+        # single b
+        fake1_out, atts1 = G.get_output_for(latents, labels, is_training=True, return_atts=True)
+        fake2_out, _ = G.get_output_for(delta_latents, labels, is_training=True, return_atts=True)
+        # atts1, _ = tf.split(atts, 2, axis=0)
         # atts1: [b, n_latents, 1, res, res]
     else:
-        fake_all_out = G.get_output_for(latents_all, labels, is_training=True, return_atts=False)
-    fake1_out, _ = tf.split(fake_all_out, 2, axis=0)
+        # twice b
+        # fake_all_out = G.get_output_for(latents_all, labels, is_training=True, return_atts=False)
+        # single b
+        fake1_out = G.get_output_for(latents, labels, is_training=True, return_atts=False)
+        fake2_out = G.get_output_for(delta_latents, labels, is_training=True, return_atts=False)
+    # fake1_out, _ = tf.split(fake_all_out, 2, axis=0)
 
     if minDfeats_lambda > 0:
-        outs_D = D.get_output_for(fake_all_out, labels, is_training=True, return_feats=True, return_as_list=True)
-        fake_scores_out, _ = tf.split(outs_D[0], 2, axis=0)
-        feats_D = outs_D[1:]
+        # twice b
+        # outs_D = D.get_output_for(fake_all_out, labels, is_training=True, return_feats=True, return_as_list=True)
+        # fake_scores_out, _ = tf.split(outs_D[0], 2, axis=0)
+        # feats_D = outs_D[1:]
+        # single b
+        outs1_D = D.get_output_for(fake1_out, labels, is_training=True, return_feats=True, return_as_list=True)
+        outs2_D = D.get_output_for(fake2_out, labels, is_training=True, return_feats=True, return_as_list=True)
+        fake_scores_out = outs1_D[0]
+        feats_D = tf.concat([outs1_D[1:], outs2_D[1:]], axis=0)
     else:
         fake_scores_out = D.get_output_for(fake1_out, labels, is_training=True)
     G_loss = tf.nn.softplus(-fake_scores_out) # -log(sigmoid(fake_scores_out))
     
-    outs = I.get_output_for(fake_all_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
-    regress_out = outs[0]
-    feats = outs[1:]
-    reg1_out, reg2_out = tf.split(regress_out, 2, axis=0)
+    # twice b
+    # outs = I.get_output_for(fake_all_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
+    # regress_out = outs[0]
+    # feats = outs[1:]
+    # reg1_out, reg2_out = tf.split(regress_out, 2, axis=0)
+    # single b
+    reg1_outs = I.get_output_for(fake1_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
+    reg2_outs = I.get_output_for(fake2_out, is_training=True, return_feats=(minfeats_lambda>0), return_as_list=True)
+    feats = tf.concat([reg1_outs[1:], reg2_outs[1:]], axis=0)
+    reg1_out, reg2_out = reg1_outs[0], reg2_outs[0]
+
     I_loss = calc_ps_loss(latents, delta_latents, reg1_out, reg2_out, C_delta_latents, C_lambda)
     I_loss = autosummary('Loss/I_loss', I_loss)
 
