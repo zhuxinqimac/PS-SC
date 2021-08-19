@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_navigate.py
 # --- Creation Date: 09-08-2021
-# --- Last Modified: Thu 19 Aug 2021 18:03:08 AEST
+# --- Last Modified: Fri 20 Aug 2021 02:24:48 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -118,7 +118,7 @@ def run(result_dir, num_gpus, total_kimg,
                   network_snapshot_ticks=network_snapshot_ticks)
     kwargs.submit_config = copy.deepcopy(sc)
     kwargs.submit_config.run_dir_root = result_dir
-    kwargs.submit_config.run_desc = desc
+    kwargs.submit_config.run_desc = desc.replace('@', '')
     dnnlib.submit_run(**kwargs)
 
 
