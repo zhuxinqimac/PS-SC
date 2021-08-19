@@ -8,7 +8,7 @@
 
 # --- File Name: training.loss_nav.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Sat 14 Aug 2021 22:01:57 AEST
+# --- Last Modified: Thu 19 Aug 2021 18:01:38 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -31,7 +31,22 @@ def calc_l2_loss(reg_1, reg_2, delta_idx, dims_to_learn_tf, epsilon, l2_lambda):
     I_loss = l2_lambda * tf.reduce_sum(tf.math.squared_difference(target_delta, reg_delta), axis=1)
     return I_loss
 
-def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, random_eps=True, dims_to_learn_ls=[0,1,2,3], reg_lambda=1):
+def calc_minfeats_loss(feats, minfeats_lambda):
+    '''
+    feats is a list of tensors of shapes:
+    [2b, c, h, w] or [2b, c]
+    '''
+    loss = 0
+    for feat in feats:
+        feat_1, feat_2 = tf.split(feat, 2, axis=0)
+        if len(feat_1.shape) > 2:
+            feat_1 = tf.reduce_mean(feat_1, axis=[2,3]) # [b, nfeat]
+            feat_2 = tf.reduce_mean(feat_2, axis=[2,3]) # [b, nfeat]
+        loss_tmp = tf.reduce_mean(tf.math.squared_difference(feat_1, feat_2), axis=1)
+        loss += loss_tmp
+    return minfeats_lambda * loss
+
+def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, random_eps=True, dims_to_learn_ls=[0,1,2,3], minfeats_lambda=0, reg_lambda=1):
     _ = opt
     z_latents = tf.random.normal([minibatch_size] + [G.input_shapes[0][1]])
     # G.components.mapping.get_output_for(z_latents, None, is_training=False)
@@ -64,14 +79,23 @@ def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, 
     if sh[2] > I.input_shape[-1]:
         factor = sh[2] // I.input_shape[-1]
         images_all = tf.reduce_mean(tf.reshape(images_all, [-1, sh[1], sh[2] // factor, factor, sh[2] // factor, factor]), axis=[3,5])
-    regress_all = I.get_output_for(images_all, is_training=if_train_I)
+
+    outs = I.get_output_for(images_all, is_training=if_train_I, return_feats=(minfeats_lambda>0), return_as_list=True)
+    regress_all = outs[0]
     reg_1, reg_2 = tf.split(regress_all, 2, axis=0)
 
     I_loss = calc_l2_loss(reg_1, reg_2, delta_idx, dims_to_learn_tf, epsilon, C_lambda)
     I_loss = autosummary('Loss/I_loss', I_loss)
 
-    reg_loss = tf.reduce_mean(tf.norm(tf.reshape(dirs, [n_lat, dirs.shape[1]*dirs.shape[2]]), axis=-1))
-    reg_loss = autosummary('Loss/reg_loss', reg_loss)
-    I_loss += reg_lambda * reg_loss
+    if reg_lambda > 0:
+        reg_loss = tf.reduce_mean(tf.norm(tf.reshape(dirs, [n_lat, dirs.shape[1]*dirs.shape[2]]), axis=-1))
+        reg_loss = autosummary('Loss/reg_loss', reg_loss)
+        I_loss += reg_lambda * reg_loss
+
+    if minfeats_lambda > 0:
+        feats = outs[1:]
+        F_loss = calc_minfeats_loss(feats, minfeats_lambda)
+        F_loss = autosummary('Loss/F_loss', F_loss)
+        I_loss += F_loss
 
     return I_loss
