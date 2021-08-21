@@ -8,7 +8,7 @@
 
 # --- File Name: training.loss_nav.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Thu 19 Aug 2021 18:01:38 AEST
+# --- Last Modified: Sat 21 Aug 2021 14:13:21 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -31,13 +31,18 @@ def calc_l2_loss(reg_1, reg_2, delta_idx, dims_to_learn_tf, epsilon, l2_lambda):
     I_loss = l2_lambda * tf.reduce_sum(tf.math.squared_difference(target_delta, reg_delta), axis=1)
     return I_loss
 
-def calc_minfeats_loss(feats, minfeats_lambda):
+def calc_minfeats_loss(feats, minfeats_lambda, mf_compare_idx):
     '''
     feats is a list of tensors of shapes:
     [2b, c, h, w] or [2b, c]
     '''
     loss = 0
-    for feat in feats:
+    print('len(feats):', len(feats))
+    print('mf_compare_idx:', mf_compare_idx)
+    assert max(mf_compare_idx) < len(feats)
+    for i, feat in enumerate(feats):
+        if i not in mf_compare_idx:
+            continue
         feat_1, feat_2 = tf.split(feat, 2, axis=0)
         if len(feat_1.shape) > 2:
             feat_1 = tf.reduce_mean(feat_1, axis=[2,3]) # [b, nfeat]
@@ -46,7 +51,7 @@ def calc_minfeats_loss(feats, minfeats_lambda):
         loss += loss_tmp
     return minfeats_lambda * loss
 
-def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, random_eps=True, dims_to_learn_ls=[0,1,2,3], minfeats_lambda=0, reg_lambda=1):
+def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, random_eps=True, dims_to_learn_ls=[0,1,2,3], minfeats_lambda=0, mf_compare_idx=[0,1,2], reg_lambda=1):
     _ = opt
     z_latents = tf.random.normal([minibatch_size] + [G.input_shapes[0][1]])
     # G.components.mapping.get_output_for(z_latents, None, is_training=False)
@@ -94,7 +99,7 @@ def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, 
 
     if minfeats_lambda > 0:
         feats = outs[1:]
-        F_loss = calc_minfeats_loss(feats, minfeats_lambda)
+        F_loss = calc_minfeats_loss(feats, minfeats_lambda, mf_compare_idx)
         F_loss = autosummary('Loss/F_loss', F_loss)
         I_loss += F_loss
 
