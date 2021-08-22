@@ -8,7 +8,7 @@
 
 # --- File Name: training.nav_networks.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Sun 22 Aug 2021 14:56:18 AEST
+# --- Last Modified: Sun 22 Aug 2021 16:29:04 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -67,11 +67,13 @@ def navigator(w, nav_type='linear', n_lat=20, num_ws=18, w_dim=512,
         elif nav_type.startswith('adalayersoft'):
             # Directions depends on the input w.
             n_att_ws = get_n_att(nav_type, num_ws)
-            layer_att = apply_bias_act(dense_layer(w, fmaps=n_lat * n_att_ws), act='linear') # [b, n_lat * n_att_ws]
+            with tf.variable_scope('layer_att'):
+                layer_att = apply_bias_act(dense_layer(w, fmaps=n_lat * n_att_ws), act='linear') # [b, n_lat * n_att_ws]
             layer_att = tf.reshape(layer_att, [b, n_lat, n_att_ws])
             layer_softmax = tf.concat([tf.nn.softmax(layer_att, axis=-1),
                                        tf.zeros([b, n_lat, num_ws - n_att_ws], dtype='float32')], axis=-1) # [b, n_lat, num_ws]
-            per_layer_dir = apply_bias_act(dense_layer(w, fmaps=n_lat * w_dim), act='linear') # [b, n_lat * w_dim]
+            with tf.variable_scope('per_layer_dir'):
+                per_layer_dir = apply_bias_act(dense_layer(w, fmaps=n_lat * w_dim), act='linear') # [b, n_lat * w_dim]
             per_layer_dir = tf.reshape(per_layer_dir, [b, n_lat, w_dim])
             dirs = layer_softmax[:, :, :, np.newaxis] * per_layer_dir[:, :, np.newaxis, ...] # [b, n_lat, num_ws, w_dim]
         else:
