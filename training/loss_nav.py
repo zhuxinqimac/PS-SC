@@ -8,7 +8,7 @@
 
 # --- File Name: training.loss_nav.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Sat 21 Aug 2021 14:17:48 AEST
+# --- Last Modified: Sun 22 Aug 2021 15:53:02 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -59,23 +59,23 @@ def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, 
                                                    dlatent_broadcast=G.components.mapping.static_kwargs.dlatent_broadcast,
                                                    is_training=False)
     # dlatents: [b, w_dim]
-    dirs = N.get_output_for(tf.reduce_mean(dlatents, axis=1)) # [n_lat, num_ws, w_dim]
+    dirs = N.get_output_for(tf.reduce_mean(dlatents, axis=1)) # [n_lat, num_ws, w_dim] or [b, n_lat, num_ws, w_dim]
 
     # Sample delta
     n_lat = len(dims_to_learn_ls)
     delta_idx = tf.random.uniform([minibatch_size], minval=0, maxval=n_lat, dtype=tf.int32) # [b]
     dims_to_learn_tf = tf.constant(dims_to_learn_ls)
-    # C_delta_latents = tf.cast(tf.one_hot(delta_idx, n_lat), dlatents.dtype) # [b, n_lat]
-
-    # if not random_eps:
-        # delta_target = C_delta_latents * epsilon
-    # else:
-        # epsilon = epsilon * tf.random.normal([minibatch_size, 1], mean=0.0, stddev=1.0) # [b, 1]
-        # delta_target = C_delta_latents * epsilon
     if random_eps:
         epsilon = epsilon * tf.random.normal([minibatch_size, 1], mean=0.0, stddev=1.0) # [b, 1]
 
-    b_delta = epsilon[:, :, np.newaxis] * tf.gather(dirs, delta_idx, axis=0) # [b, num_ws, w_dim]
+    if len(dirs.shape) == 4:
+        # === Adaptive dir
+        delta_idx_b = tf.stack([tf.range(minibatch_size), delta_idx], axis=1) # [b, 2]
+        b_delta = epsilon[:, :, np.newaxis] * tf.gather_nd(dirs, delta_idx_b) # [b, num_ws, w_dim]
+        print('using ada, b_delta.shape:', b_delta.shape)
+    else:
+        # === Static dir
+        b_delta = epsilon[:, :, np.newaxis] * tf.gather(dirs, delta_idx, axis=0) # [b, num_ws, w_dim]
     dlatents_delta = b_delta + dlatents
 
     images_all = G.components.synthesis.get_output_for(tf.concat([dlatents, dlatents_delta], axis=0), is_training=False)

@@ -8,7 +8,7 @@
 
 # --- File Name: training_loop_nav.py
 # --- Creation Date: 09-08-2021
-# --- Last Modified: Sat 14 Aug 2021 17:13:36 AEST
+# --- Last Modified: Sun 22 Aug 2021 16:22:28 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -63,19 +63,34 @@ def get_walk(w_origin, Ns, n_samples_per):
     w_origin: [1, num_ws, w_dim]
     return: [n_lat * n_samples_per, num_ws, w_dim]
     '''
-    dirs = Ns.run(w_origin.mean(1)) # [n_lat, num_ws, w_dim]
+    dirs = Ns.run(w_origin.mean(1)) # [n_lat, num_ws, w_dim] or [1, n_lat, num_ws, w_dim]
     n_lat, num_ws, w_dim = dirs.shape
     step_size = 4. / n_samples_per
     w_origin = np.tile(w_origin, [n_lat, 1, 1])
     steps = []
-    step = w_origin.copy()
+    if len(dirs.shape) == 4:
+        # w_origin = tf.tile(w_origin[np.newaxis, ...], [n_lat, 1, 1, 1]) # [n_lat, n_lat, num_ws, w_dim]
+        dirs = tf.tile(dirs, [n_lat, 1, 1, 1]) # [n_lat, n_lat, num_ws, w_dim]
+
+    step = w_origin.copy() # [n_lat, num_ws, w_dim]
     for i in range(n_samples_per // 2 + 1):
-        step = step - i * step_size * dirs
-        steps = [step[:, np.newaxis, ...]] + steps
+        if len(dirs.shape) == 4: # ada dirs
+            step = step - i * step_size * dirs[range(n_lat), range(n_lat)] # [n_lat, num_ws, w_dim]
+            steps = [step[:, np.newaxis, ...]] + steps
+            dirs = Ns.run(step.mean(1)) # [n_lat, n_lat, num_ws, w_dim]
+        else:
+            step = step - i * step_size * dirs
+            steps = [step[:, np.newaxis, ...]] + steps
+
     step = w_origin.copy()
     for i in range(1, n_samples_per - n_samples_per // 2):
-        step = step + i * step_size * dirs
-        steps = steps + [step[:, np.newaxis, ...]]
+        if len(dirs.shape) == 4: # ada dirs
+            step = step + i * step_size * dirs[range(n_lat), range(n_lat)] # [n_lat, num_ws, w_dim]
+            steps = steps + [step[:, np.newaxis, ...]]
+            dirs = Ns.run(step.mean(1)) # [n_lat, n_lat, num_ws, w_dim]
+        else:
+            step = step + i * step_size * dirs
+            steps = steps + [step[:, np.newaxis, ...]]
     steps = np.concatenate(steps, axis=1) # [n_lat, n_samples_per, num_ws, w_dim]
     return np.reshape(steps, (n_lat * n_samples_per, num_ws, w_dim))
 
