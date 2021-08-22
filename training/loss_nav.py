@@ -8,7 +8,7 @@
 
 # --- File Name: training.loss_nav.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Sun 22 Aug 2021 15:53:02 AEST
+# --- Last Modified: Sun 22 Aug 2021 23:05:47 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -39,6 +39,8 @@ def calc_minfeats_loss(feats, minfeats_lambda, mf_compare_idx):
     loss = 0
     # print('len(feats):', len(feats))
     # print('mf_compare_idx:', mf_compare_idx)
+    if mf_compare_idx is None:
+        mf_compare_idx = list(range(len(feats)))
     assert max(mf_compare_idx) < len(feats)
     for i, feat in enumerate(feats):
         if i not in mf_compare_idx:
