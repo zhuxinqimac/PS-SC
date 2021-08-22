@@ -8,7 +8,7 @@
 
 # --- File Name: training_loop_nav.py
 # --- Creation Date: 09-08-2021
-# --- Last Modified: Sun 22 Aug 2021 16:31:11 AEST
+# --- Last Modified: Sun 22 Aug 2021 16:33:16 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -69,8 +69,8 @@ def get_walk(w_origin, Ns, n_samples_per):
     w_origin = np.tile(w_origin, [n_lat, 1, 1])
     steps = []
     if len(dirs.shape) == 4:
-        # w_origin = tf.tile(w_origin[np.newaxis, ...], [n_lat, 1, 1, 1]) # [n_lat, n_lat, num_ws, w_dim]
-        dirs = tf.tile(dirs, [n_lat, 1, 1, 1]) # [n_lat, n_lat, num_ws, w_dim]
+        # w_origin = np.tile(w_origin[np.newaxis, ...], [n_lat, 1, 1, 1]) # [n_lat, n_lat, num_ws, w_dim]
+        dirs = np.tile(dirs, [n_lat, 1, 1, 1]) # [n_lat, n_lat, num_ws, w_dim]
 
     step = w_origin.copy() # [n_lat, num_ws, w_dim]
     for i in range(n_samples_per // 2 + 1):
