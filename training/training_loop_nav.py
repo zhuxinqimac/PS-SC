@@ -8,7 +8,7 @@
 
 # --- File Name: training_loop_nav.py
 # --- Creation Date: 09-08-2021
-# --- Last Modified: Sun 22 Aug 2021 16:22:28 AEST
+# --- Last Modified: Sun 22 Aug 2021 16:31:11 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -64,7 +64,7 @@ def get_walk(w_origin, Ns, n_samples_per):
     return: [n_lat * n_samples_per, num_ws, w_dim]
     '''
     dirs = Ns.run(w_origin.mean(1)) # [n_lat, num_ws, w_dim] or [1, n_lat, num_ws, w_dim]
-    n_lat, num_ws, w_dim = dirs.shape
+    n_lat, num_ws, w_dim = dirs.shape if len(dirs.shape) == 3 else dirs.shape[1:]
     step_size = 4. / n_samples_per
     w_origin = np.tile(w_origin, [n_lat, 1, 1])
     steps = []
