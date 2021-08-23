@@ -8,7 +8,7 @@
 
 # --- File Name: training.loss_nav.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Tue 24 Aug 2021 02:00:51 AEST
+# --- Last Modified: Tue 24 Aug 2021 02:06:15 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -72,7 +72,6 @@ def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, 
         if eps_type == 'normal':
             epsilon = epsilon * tf.random.normal([minibatch_size, 1], mean=0.0, stddev=1.0) # [b, 1]
         elif eps_type == 'signed':
-            print('using eps_type:', eps_type)
             sign = (tf.cast(tf.random.uniform([minibatch_size, 1], minval=0, maxval=2, dtype=tf.int32), tf.float32) - 0.5) * 2 # [b, 1]
             epsilon = epsilon * tf.random.normal([minibatch_size, 1], mean=0.0, stddev=1.0) + 3 # [b, 1]
             epsilon = epsilon * sign
