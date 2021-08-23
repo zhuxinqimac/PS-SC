@@ -8,7 +8,7 @@
 
 # --- File Name: run_training_navigate.py
 # --- Creation Date: 09-08-2021
-# --- Last Modified: Sun 22 Aug 2021 23:06:40 AEST
+# --- Last Modified: Tue 24 Aug 2021 02:00:21 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -44,6 +44,7 @@ def parse_config(x_type):
         out.if_train = (x_ls[0] == 'train')
     elif x_ls[-1] == 'loss':
         out.type = x_ls[0]
+        out.eps_type = x_ls[1]
     return out
 
 def run(result_dir, num_gpus, total_kimg,
@@ -80,7 +81,7 @@ def run(result_dir, num_gpus, total_kimg,
     if loss_configs.type == 'l2':
         loss = EasyDict(func_name='training.loss_nav.nav_l2', C_lambda=C_lambda, if_train_I=I_configs.if_train,
                         epsilon=epsilon_loss, random_eps=random_eps, dims_to_learn_ls=dims_to_learn_ls,
-                        minfeats_lambda=minfeats_lambda, mf_compare_idx=mf_compare_idx, reg_lambda=reg_lambda)
+                        minfeats_lambda=minfeats_lambda, mf_compare_idx=mf_compare_idx, reg_lambda=reg_lambda, eps_type=loss_configs.eps_type)
     else:
         raise ValueError('Not supported loss tyle: ' + loss_configs['type'])
 

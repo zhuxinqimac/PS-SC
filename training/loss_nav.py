@@ -8,7 +8,7 @@
 
 # --- File Name: training.loss_nav.py
 # --- Creation Date: 10-08-2021
-# --- Last Modified: Sun 22 Aug 2021 23:05:47 AEST
+# --- Last Modified: Tue 24 Aug 2021 02:00:51 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -53,7 +53,8 @@ def calc_minfeats_loss(feats, minfeats_lambda, mf_compare_idx):
         loss += loss_tmp
     return minfeats_lambda * loss
 
-def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, random_eps=True, dims_to_learn_ls=[0,1,2,3], minfeats_lambda=0, mf_compare_idx=[0,1,2], reg_lambda=1):
+def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, random_eps=True,
+           dims_to_learn_ls=[0,1,2,3], minfeats_lambda=0, mf_compare_idx=[0,1,2], reg_lambda=1, eps_type='normal'):
     _ = opt
     z_latents = tf.random.normal([minibatch_size] + [G.input_shapes[0][1]])
     # G.components.mapping.get_output_for(z_latents, None, is_training=False)
@@ -68,7 +69,15 @@ def nav_l2(N, G, I, opt, minibatch_size, C_lambda, if_train_I=False, epsilon=1, 
     delta_idx = tf.random.uniform([minibatch_size], minval=0, maxval=n_lat, dtype=tf.int32) # [b]
     dims_to_learn_tf = tf.constant(dims_to_learn_ls)
     if random_eps:
-        epsilon = epsilon * tf.random.normal([minibatch_size, 1], mean=0.0, stddev=1.0) # [b, 1]
+        if eps_type == 'normal':
+            epsilon = epsilon * tf.random.normal([minibatch_size, 1], mean=0.0, stddev=1.0) # [b, 1]
+        elif eps_type == 'signed':
+            print('using eps_type:', eps_type)
+            sign = (tf.cast(tf.random.uniform([minibatch_size, 1], minval=0, maxval=2, dtype=tf.int32), tf.float32) - 0.5) * 2 # [b, 1]
+            epsilon = epsilon * tf.random.normal([minibatch_size, 1], mean=0.0, stddev=1.0) + 3 # [b, 1]
+            epsilon = epsilon * sign
+        else:
+            raise ValueError('Unknown eps_type:', eps_type)
 
     if len(dirs.shape) == 4:
         # === Adaptive dir
