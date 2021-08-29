@@ -8,7 +8,7 @@
 
 # --- File Name: ps_sc_networks2.py
 # --- Creation Date: 24-04-2020
-# --- Last Modified: Sat 14 Aug 2021 22:44:09 AEST
+# --- Last Modified: Sun 29 Aug 2021 20:13:12 AEST
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -34,6 +34,7 @@ from training.modular_networks2 import build_noise_layer, build_conv_layer
 from training.modular_networks2 import build_res_conv_layer
 from training.modular_networks2 import build_C_spgroup_layers
 from training.modular_networks2 import build_C_spgroup_softmax_layers
+from training.modular_networks2 import build_C_sc_layers
 from training.ps_sc_networks3 import G_synthesis_modular_ps_sc_2
 
 #----------------------------------------------------------------------------
@@ -176,6 +177,38 @@ def G_synthesis_modular_ps_sc(
             # e.g. {'C_global': 2}
             x = build_C_global_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
                                       scope_idx=scope_idx, fmaps=nf(scope_idx//G_nf_scale), **subkwargs)
+            start_idx += size_ls[scope_idx]
+        elif k.startswith('C_sc-'):
+            # e.g. {'C_sc-mirror-2': 2}
+            tokens = k.split('-')
+            n_subs = int(tokens[-1])
+            pre_style_dense = ('prestyle' in tokens)
+            mirrored_masks = ('mirror' in tokens)
+            channel_div = ('chdiv' in tokens)
+            recursive_style = ('recstyle' in tokens)
+            renew_x_norm = ('renewXnorm' in tokens)
+            if 'sumclipAtt' in tokens:
+                att_type = 'sumclip'
+            elif 'sumAtt' in tokens:
+                att_type = 'sum'
+            else:
+                att_type = 'mean'
+
+            if return_atts:
+                x, atts_tmp = build_C_sc_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
+                                                scope_idx=scope_idx, fmaps=nf(scope_idx//G_nf_scale), return_atts=True,
+                                                n_subs=n_subs, mirrored_masks=mirrored_masks,
+                                                pre_style_dense=pre_style_dense, channel_div=channel_div,
+                                                att_type=att_type, recursive_style=recursive_style,
+                                                renew_x_norm=renew_x_norm, **subkwargs)
+                atts.append(atts_tmp)
+            else:
+                x = build_C_sc_layers(x, name=k, n_latents=size_ls[scope_idx], start_idx=start_idx,
+                                      scope_idx=scope_idx, fmaps=nf(scope_idx//G_nf_scale), return_atts=False,
+                                      n_subs=n_subs, mirrored_masks=mirrored_masks,
+                                      pre_style_dense=pre_style_dense, channel_div=channel_div,
+                                      att_type=att_type, recursive_style=recursive_style,
+                                      renew_x_norm=renew_x_norm, **subkwargs)
             start_idx += size_ls[scope_idx]
         elif k.startswith('C_spgroup-'):
             # e.g. {'C_spgroup-2': 2}
