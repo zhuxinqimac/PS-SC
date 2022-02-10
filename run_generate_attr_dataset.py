@@ -8,7 +8,7 @@
 
 # --- File Name: run_generate_attr_dataset.py
 # --- Creation Date: 11-02-2022
-# --- Last Modified: Fri 11 Feb 2022 05:19:08 AEDT
+# --- Last Modified: Fri 11 Feb 2022 05:56:14 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -65,7 +65,7 @@ def generate_attr_dataset(network_pkl, n_data_samples, start_seed,
             b = start_seed + n_data_samples - seed
         else:
             b = run_batch
-        Gs_kwargs = dnnlib.EasyDict(randomize_noise=True)
+        Gs_kwargs = dnnlib.EasyDict(randomize_noise=True, minibatch_size=b, is_validation=True)
         # z = rnd.randn(b, *Gs.input_shape[1:]) # [minibatch, component]
         z = truncated_z_sample(b, Gs.input_shape[1], truncation=truncation_psi, seed=seed)
         images = get_return_v(Gs.run(z, None, **Gs_kwargs), 1) # [b, c, h, w]
@@ -79,7 +79,7 @@ def generate_attr_dataset(network_pkl, n_data_samples, start_seed,
         images = np.transpose(images, [0, 2, 3, 1])
         images = np.rint(images).clip(0, 255).astype(np.uint8)
         for i in range(len(z)):
-            PIL.Image.fromarray(images[i], 'RGB').save(dnnlib.make_run_dir_path(f'seed{seed+i}.png'))
+            PIL.Image.fromarray(images[i], 'RGB').save(dnnlib.make_run_dir_path('seed%07d.png' % (seed + i)))
         attr_ls.append(z[:, idxes])
     attr['data'] = np.concatenate(attr_ls, axis=0)
     with open(dnnlib.make_run_dir_path(f'attrs.pkl'), 'wb') as f:
@@ -110,7 +110,7 @@ def main():
     kwargs = vars(args)
 
     sc = dnnlib.SubmitConfig()
-    sc.num_gpus = 2
+    sc.num_gpus = 1
     sc.submit_target = dnnlib.SubmitTarget.LOCAL
     sc.local.do_not_copy_source_files = True
     sc.run_dir_root = kwargs.pop('result_dir')
