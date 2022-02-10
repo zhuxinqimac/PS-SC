@@ -8,7 +8,7 @@
 
 # --- File Name: run_generate_attr_dataset.py
 # --- Creation Date: 11-02-2022
-# --- Last Modified: Fri 11 Feb 2022 03:30:36 AEDT
+# --- Last Modified: Fri 11 Feb 2022 04:58:56 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -39,7 +39,7 @@ from metrics.metric_defaults import metric_defaults
 
 def generate_attr_dataset(network_pkl, n_data_samples, start_seed,
                           resolution, run_batch, used_semantics_ls, attr2idx_dict,
-                          create_new_G, new_func_name):
+                          create_new_G, new_func_name, truncation_psi=0.5):
     '''
     used_semantics_ls: ['azimuth', 'haircolor', ...]
     attr2idx_dict: {'azimuth': 10, 'haircolor': 17, 'smile': 6, ...}
@@ -59,14 +59,14 @@ def generate_attr_dataset(network_pkl, n_data_samples, start_seed,
             b = start_seed + n_data_samples - seed
         else:
             b = run_batch
-        Gs_kwargs = dnnlib.EasyDict(randomize_noise=True)
+        Gs_kwargs = dnnlib.EasyDict(randomize_noise=True, truncation_psi=truncation_psi)
         z = rnd.randn(b, *Gs.input_shape[1:]) # [minibatch, component]
         images = get_return_v(Gs.run(z, None, **Gs_kwargs), 1) # [b, c, h, w]
 
-        # shrink = Gs.output_shape[-1] // resolution
-        # if shrink > 1:
-            # _, c, h, w = images.shape
-            # images = images.reshape(b, c, h // shrink, shrink, w // shrink, shrink).mean(5).mean(3)
+        shrink = Gs.output_shape[-1] // resolution
+        if shrink > 1:
+            _, c, h, w = images.shape
+            images = images.reshape(b, c, h // shrink, shrink, w // shrink, shrink).mean(5).mean(3)
 
         images = misc.adjust_dynamic_range(images, [-1, 1], [0, 255])
         images = np.transpose(images, [0, 2, 3, 1])
@@ -97,6 +97,7 @@ def main():
                         default='{azimuth: 10, haircolor: 17, smile: 6}', type=_str_to_attr2idx)
     parser.add_argument('--create_new_G', help='If create a new G for projection.', default=False, type=_str_to_bool)
     parser.add_argument('--new_func_name', help='new G func name if create new G', default='training.ps_sc_networks2.G_main_ps_sc')
+    parser.add_argument('--truncation_psi', type=float, help='Truncation psi (default: %(default)s)', default=0.5)
 
     args = parser.parse_args()
     kwargs = vars(args)
