@@ -8,7 +8,7 @@
 
 # --- File Name: run_generate_attr_dataset.py
 # --- Creation Date: 11-02-2022
-# --- Last Modified: Fri 11 Feb 2022 04:58:56 AEDT
+# --- Last Modified: Fri 11 Feb 2022 05:19:08 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -27,6 +27,7 @@ import os
 import collections
 import cv2
 import pickle
+from scipy.stats import truncnorm
 
 import pretrained_networks
 from training import misc
@@ -36,6 +37,11 @@ from run_editing_ps_sc import image_to_out
 from run_generator_ps_sc import _str_to_list, _str_to_attr2idx, _str_to_bool
 from PIL import Image, ImageDraw, ImageFont
 from metrics.metric_defaults import metric_defaults
+
+def truncated_z_sample(batch_size, z_dim, truncation=0.5, seed=None):
+    state = None if seed is None else np.random.RandomState(seed)
+    values = truncnorm.rvs(-2, 2, size=(batch_size, z_dim), random_state=state)
+    return truncation * values
 
 def generate_attr_dataset(network_pkl, n_data_samples, start_seed,
                           resolution, run_batch, used_semantics_ls, attr2idx_dict,
@@ -59,8 +65,9 @@ def generate_attr_dataset(network_pkl, n_data_samples, start_seed,
             b = start_seed + n_data_samples - seed
         else:
             b = run_batch
-        Gs_kwargs = dnnlib.EasyDict(randomize_noise=True, truncation_psi=truncation_psi)
-        z = rnd.randn(b, *Gs.input_shape[1:]) # [minibatch, component]
+        Gs_kwargs = dnnlib.EasyDict(randomize_noise=True)
+        # z = rnd.randn(b, *Gs.input_shape[1:]) # [minibatch, component]
+        z = truncated_z_sample(b, Gs.input_shape[1], truncation=truncation_psi, seed=seed)
         images = get_return_v(Gs.run(z, None, **Gs_kwargs), 1) # [b, c, h, w]
 
         shrink = Gs.output_shape[-1] // resolution
