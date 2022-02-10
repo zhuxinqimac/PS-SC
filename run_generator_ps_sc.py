@@ -8,7 +8,7 @@
 
 # --- File Name: run_generator_ps_sc.py
 # --- Creation Date: 26-05-2020
-# --- Last Modified: Wed 17 Mar 2021 17:35:20 AEDT
+# --- Last Modified: Fri 11 Feb 2022 00:14:35 AEDT
 # --- Author: Xinqi Zhu
 # .<.<.<.<.<.<.<.<.<.<.<.<.<.<.<.<
 """
@@ -39,24 +39,19 @@ from metrics.metric_defaults import metric_defaults
 def generate_images(network_pkl, seeds, create_new_G, new_func_name):
     tflib.init_tf()
     print('Loading networks from "%s"...' % network_pkl)
-    # _G, _D, Gs = pretrained_networks.load_networks(network_pkl)
     _G, _D, I, Gs = misc.load_pkl(network_pkl)
     if create_new_G:
         Gs = Gs.convert(new_func_name=new_func_name)
-    # noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
 
     Gs_kwargs = dnnlib.EasyDict()
-    # Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
     Gs_kwargs.randomize_noise = True
 
     for seed_idx, seed in enumerate(seeds):
         print('Generating image for seed %d (%d/%d) ...' % (seed, seed_idx, len(seeds)))
         rnd = np.random.RandomState(seed)
         z = rnd.randn(1, *Gs.input_shape[1:]) # [minibatch, component]
-        # tflib.set_vars({var: rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
         images, _ = Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
         images = misc.adjust_dynamic_range(images, [-1, 1], [0, 255])
-        # np.clip(images, 0, 255, out=images)
         images = np.transpose(images, [0, 2, 3, 1])
         images = np.rint(images).clip(0, 255).astype(np.uint8)
         PIL.Image.fromarray(images[0], 'RGB').save(dnnlib.make_run_dir_path('seed%04d.png' % seed))
@@ -64,24 +59,20 @@ def generate_images(network_pkl, seeds, create_new_G, new_func_name):
 def generate_domain_shift(network_pkl, seeds, domain_dim):
     tflib.init_tf()
     print('Loading networks from "%s"...' % network_pkl)
-    # _G, _D, Gs = pretrained_networks.load_networks(network_pkl)
     _G, _D, I, Gs = misc.load_pkl(network_pkl)
 
     Gs_kwargs = dnnlib.EasyDict()
-    # Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
     Gs_kwargs.randomize_noise = True
 
     for seed_idx, seed in enumerate(seeds):
         print('Generating image for seed %d (%d/%d) ...' % (seed, seed_idx, len(seeds)))
         rnd = np.random.RandomState(seed)
         z = rnd.randn(1, *Gs.input_shape[1:]) # [minibatch, component]
-        # tflib.set_vars({var: rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
         images_1, _ = Gs.run(z, None, **Gs_kwargs) # [minibatch, c, height, width]
         z[:, domain_dim] = -z[:, domain_dim]
         images_2, _ = Gs.run(z, None, **Gs_kwargs) # [minibatch, c, height, width]
         images = np.concatenate((images_1, images_2), axis=3)
         images = misc.adjust_dynamic_range(images, [-1, 1], [0, 255])
-        # np.clip(images, 0, 255, out=images)
         images = np.transpose(images, [0, 2, 3, 1])
         images = np.rint(images).clip(0, 255).astype(np.uint8)
         PIL.Image.fromarray(images[0], 'RGB').save(dnnlib.make_run_dir_path('seed%04d.png' % seed))
@@ -89,12 +80,9 @@ def generate_domain_shift(network_pkl, seeds, domain_dim):
 def generate_traversals(network_pkl, seeds, tpl_metric, n_samples_per, topk_dims_to_show, return_atts=False, bound=2):
     tflib.init_tf()
     print('Loading networks from "%s"...' % network_pkl)
-    # _G, _D, Gs = pretrained_networks.load_networks(network_pkl)
     _G, _D, I, Gs = get_return_v(misc.load_pkl(network_pkl), 4)
-    # noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
 
     Gs_kwargs = dnnlib.EasyDict()
-    # Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
     Gs_kwargs.randomize_noise = True
     if return_atts:
         Gs_kwargs.return_atts = True,
@@ -118,7 +106,6 @@ def generate_traversals(network_pkl, seeds, tpl_metric, n_samples_per, topk_dims
     for seed_idx, seed in enumerate(seeds):
         grid_size, grid_latents, grid_labels = get_grid_latents(
             0, n_continuous, n_samples_per, Gs, grid_labels, topk_dims)
-        # images, _ = Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
         grid_fakes, atts = get_return_v(Gs.run(grid_latents,
                             grid_labels,
                             is_validation=True,
@@ -180,14 +167,11 @@ def generate_gifs(network_pkl, exist_imgs_dir,
     '''
     tflib.init_tf()
     print('Loading networks from "%s"...' % network_pkl)
-    # _G, _D, Gs = pretrained_networks.load_networks(network_pkl)
     _G, _D, I, Gs = misc.load_pkl(network_pkl)
     if create_new_G:
         Gs = Gs.convert(new_func_name=new_func_name)
-    # noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
 
     Gs_kwargs = dnnlib.EasyDict()
-    # Gs_kwargs.output_transform = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
     Gs_kwargs.randomize_noise = True
 
     ori_imgs = []
@@ -251,27 +235,9 @@ def _str_to_attr2idx(v):
 
 #----------------------------------------------------------------------------
 
-_examples = '''examples:
-
-  # Generate ffhq uncurated images (matches paper Figure 12)
-  python %(prog)s generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --seeds=6600-6625 --truncation-psi=0.5
-
-  # Generate ffhq curated images (matches paper Figure 11)
-  python %(prog)s generate-images --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --seeds=66,230,389,1518 --truncation-psi=1.0
-
-  # Generate uncurated car images (matches paper Figure 12)
-  python %(prog)s generate-images --network=gdrive:networks/stylegan2-car-config-f.pkl --seeds=6000-6025 --truncation-psi=0.5
-
-  # Generate style mixing example (matches style mixing video clip)
-  python %(prog)s style-mixing-example --network=gdrive:networks/stylegan2-ffhq-config-f.pkl --row-seeds=85,100,75,458,1500 --col-seeds=55,821,1789,293 --truncation-psi=1.0
-'''
-
-#----------------------------------------------------------------------------
-
 def main():
     parser = argparse.ArgumentParser(
         description='''PS-SC GAN generator.''',
-        epilog=_examples,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
